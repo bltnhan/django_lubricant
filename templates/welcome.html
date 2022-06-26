@@ -1,0 +1,73 @@
+
+{% load static %}
+
+
+<style>
+    body {
+        font-family: "Arial", "HelveticaNeue", "Helvetica Neue", Arial, Helvetica, Times New Roman;
+        color: white;
+        background: url('{% static "img/screen-1.jpg" %}');
+        background-color: #014860;
+        background-repeat: no-repeat;
+        background-size: 100vw 50vh;
+
+
+    }
+    #span11 {
+        margin-left: 150px;
+        padding: 5px;
+
+    }
+    #span1 {
+        margin-left: 53px;
+        padding: 5px;
+
+    }
+    #content {
+        margin-top: 45vh;
+		padding: 60px ;
+		text-align: justify;
+		height: 300px
+	}
+
+</style>
+
+
+<body>
+    <div id="banner">
+
+    </div>
+    <div id="content">
+        <h1 style="text-align: center; font-size:50px">Vietnam Lubricant Import Share Report</h1></br>
+        <div>
+            <span><b>Introduction</b></span><br/>
+            <span id="span11"> Vietnam Lubricant Import Share Report is including the analysis and calculation of ASHAVI</span><br/><br/>
+            <span id="span11">The report includes the share of oil application which have been import to Vietnam by clients and competitors.</span><br/><br/>
+            <span id="span11">The report includes HS Code Number: 2710, 3403, 3819, 3820.</span><br/><br/>
+            <span id="span11">The volume of lubricant is calculated by KG(for Grease) and Litter (for Lubricant)</span><br/><br/><br/>
+            </div>
+        <div>
+            <span><b>Report Content: </b></span><br/>
+            {% if user.is_authenticated %}
+            <span id="span11"><a href={% url 'dashboard_1'%} style="color:hotpink">Part 1</a>: Importer Import volume & value</span><br/><br/>
+            <span id="span11"><a href={% url 'dashboard_2_1'%} style="color:hotpink">Part 2</a>: Lubricant / grease volume & value import by Industry</span><br/><br/>
+            <span id="span11"><a href={% url 'develope'%} style="color:hotpink">Part 3</a>: Competitor Import volume & value</span><br/><br/>
+            <span id="span11"><a href={% url 'develope'%} style="color:hotpink">Part 4</a>: Imported product volume & value</span><br/><br/><br/>
+             {% else %}
+            <span id="span11"><a href={% url 'login'%}>Part 1</a>: Importer Import volume & value</span><br/><br/>
+            <span id="span11"><a href={% url 'login'%}>Part 2</a>: Lubricant / grease volume & value import by Industry</span><br/><br/>
+            <span id="span11"><a href={% url 'login'%}>Part 3</a>: Competitor Import volume & value</span><br/><br/>
+            <span id="span11"><a href={% url 'login'%}>Part 4</a>: Imported product volume & value</span><br/><br/><br/>
+            {% endif %}
+            <div>
+                {% if user.is_authenticated %}
+                {% else %}
+                    <p class="text-danger">You have to login to see this dashboard, you have to log in, please click
+                        <span><a class="text-info" href={% url 'login'%}>here</a></span></p><br/><br/>
+
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+

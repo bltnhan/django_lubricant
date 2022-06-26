@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+{% if user.is_authenticated %}
+{% load plotly_dash %}
+    <h4>Sorry, we are on developing this function,
+        <span><a class="text-danger" href="#">will come back soon</a></span></h4>
+{% else %}
+    <h4>You have to login to see this dashboard, you have to log in, please click
+        <span><a class="text-danger" href={% url 'login'%}>here</a></span></h4>
+
+{% endif %}
+    <br>
+
+{% endblock %}

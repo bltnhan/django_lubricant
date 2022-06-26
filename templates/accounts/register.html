@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<style>
+    img {width:100%;}
+</style>
+<section class="testimonial py-5" id="testimonial">
+    <div class="container">
+        <div class="row ">
+            <div class="col-md-4 py-5 bg-primary text-white text-center ">
+                <div class=" ">
+                    <div class="card-body">
+                        <img src="http://www.ansonika.com/mavia/img/registration_bg.svg" style="width:30%">
+                        <h2 class="py-3">Registration</h2>
+                        <p>Tation argumentum et usu, dicit viderer evertitur te has.
+                            Eu dictas concludaturque usu, facete detracto patrioque an per, lucilius pertinacia eu vel.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8 py-5 border">
+                <h4 class="pb-4">Please fill with your details</h4>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                          <input id="id_username" name="username" required placeholder="Tên người dùng" class="form-control" type="text">
+                        </div>
+                        <br />
+                        <div class="form-group col-md-6">
+                          <input type="email" class="form-control" id="id_email" placeholder="Nhập email">
+                        </div>
+                    </div>
+                    <br />
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <input id="id_email2" name="email2" required placeholder="Xác nhận email..." class="form-control"  type="text">
+                        </div>
+                        <br />
+                        <div class="form-group col-md-6">
+                            <input id="id_password" name="password" required placeholder="Nhập mật khẩu..." class="form-control"  type="password">
+                        </div>
+                    </div>
+                    <br />
+                    <div>
+                        <div class="form-group col-md-12">
+                            <button type="submit" class="btn btn-sm btn-primary">Đăng ký</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!--<form method="POST">-->
+<!--    {% csrf_token %}-->
+<!--    {{form}}-->
+<!--    <button type="submit" class="btn btn-sm btn-danger">Đăng ký</button>-->
+<!--</form>-->
+{% endblock %}
