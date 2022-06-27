@@ -33,7 +33,8 @@ def dashboard_2_1(request):
 
 def dashboard_2_2(request):
     return render(request, 'index2_2.html', {})
-
+def dashboard_2_3(request):
+    return render(request, 'index2_3.html', {})
 
 def login_view(request):
     form = UserLoginForm(request.POST or None)

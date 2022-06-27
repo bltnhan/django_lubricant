@@ -11,25 +11,10 @@ import dash_bootstrap_components as dbc
 import pathlib
 from . import read_xlsx
 import urllib.request
+from calendar import month_name
+import datetime
 pd.options.display.float_format = '${:,.2f}'.format
 
-
-# # data A220222 Gain - VN Lubricant Import Data
-# url1 = 'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107257&ithint=file%2cxlsx&authkey=!AMISo-nz92nMhpA'
-#
-# # company directory
-# url2 = 'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107216&ithint=file%2cxlsx&authkey=!AFWwzx98ryaPkig'
-#
-# # oil application
-# url3 = 'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI'
-#
-# # main brand
-# url4 = 'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
-#
-# urllib.request.urlretrieve(url1, "home/dash_apps/finished_apps/data/data.xlsx")
-# urllib.request.urlretrieve(url2, "home/dash_apps/finished_apps/data/company_directory.xlsx")
-# urllib.request.urlretrieve(url3, "home/dash_apps/finished_apps/data/oil_application.xlsx")
-# urllib.request.urlretrieve(url4, "home/dash_apps/finished_apps/data/main_brand.xlsx")
 
 file_name = str(pathlib.Path(__file__).name)[:-3]
 
@@ -57,7 +42,14 @@ df_group['TOTAL_AMT'] = df['TOTAL_AMT'].map('${:,.2f}'.format)
 
 #create list
 year_list = list(df['YEAR'].unique()) # lấy ra list năm để bỏ vào slider
-month_list= list(df['MONTH'].unique())
+
+month_list = list(df['MONTH'].unique())
+months_dict = {}
+for i in range(1,13):
+    months_dict[datetime.date(2020, i, 1).strftime('%b').title()] = i
+month_list = sorted(month_list, key=lambda x: months_dict[x.title()])
+
+
 class_list = list(df['Class'].unique())
 
 app.layout = html.Div([
@@ -72,7 +64,7 @@ app.layout = html.Div([
     html.Div([
         html.Div([
             html.Div([
-                html.P('CHỌN NĂM:'),
+                html.P('Select Year:'),
                 dcc.Dropdown(id='select_year',
                              multi=False,
                              clearable=True,
@@ -82,7 +74,7 @@ app.layout = html.Div([
                              placeholder='CHỌN NĂM',
                              options=[{'label': c, 'value': c}
                                       for c in df_group['YEAR'].unique()]),
-                html.P('CHỌN THÁNG:'),
+                html.P('Select Month:'),
                 dcc.Dropdown(id='select_month',
                              multi=False,
                              clearable=True,
@@ -90,7 +82,7 @@ app.layout = html.Div([
                              style={'display': True},
                              placeholder='CHỌN THÁNG',
                              options=[{'label': c, 'value': c}
-                                      for c in df_group['MONTH'].unique()]),
+                                      for c in month_list]),
                 html.P('CHỌN CLASS:'),
                 dcc.Dropdown(id='select_class',
                              multi=False,

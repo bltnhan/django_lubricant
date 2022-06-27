@@ -36,7 +36,14 @@ df_group_2_1['CLASSIFICATION'].unique()
 # df['VOLUME'] = df['VOLUME'].map('{:,.2f}'.format)
 # df['TOTAL_AMT'] = df['TOTAL_AMT'].map('${:,.2f}'.format)
 # format
-month_list = list(df_group_2_1['MONTH'].unique())
+
+import datetime
+month_list = list(df['MONTH'].unique())
+months_dict = {}
+for i in range(1,13):
+    months_dict[datetime.date(2020, i, 1).strftime('%b').title()] = i
+month_list = sorted(month_list, key=lambda x: months_dict[x.title()])
+
 year_list = list(df_group_2_1['YEAR'].unique())
 class_list = list(df_group_2_1['CLASSIFICATION'].unique())
 
@@ -72,7 +79,7 @@ app.layout = html.Div([
                 dcc.Checklist(id='select_month',
                               style={'display': True},
                               options=[{'label': c, 'value': c}
-                                       for c in df_group_2_1['MONTH'].unique()]
+                                       for c in month_list]
 
                               )
             ], className='adjust_drop_down_lists'),

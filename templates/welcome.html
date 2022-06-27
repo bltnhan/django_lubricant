@@ -1,12 +1,13 @@
-
+{% extends 'base-1.html' %}
 {% load static %}
+{% block content %}
 
 
 <style>
     body {
         font-family: "Arial", "HelveticaNeue", "Helvetica Neue", Arial, Helvetica, Times New Roman;
         color: white;
-        background: url('{% static "img/screen-1.jpg" %}');
+        background: url('{% static "img/screen-2.jpg" %}');
         background-color: #014860;
         background-repeat: no-repeat;
         background-size: 100vw 50vh;
@@ -18,17 +19,17 @@
         padding: 5px;
 
     }
-    #span1 {
-        margin-left: 53px;
-        padding: 5px;
-
-    }
     #content {
-        margin-top: 45vh;
+        margin-top: 10vh;
 		padding: 60px ;
 		text-align: justify;
 		height: 300px
 	}
+    # a_format {
+        color: hotpink;
+
+      }
+
 
 </style>
 
@@ -37,9 +38,9 @@
     <div id="banner">
 
     </div>
-    <div id="content">
-        <h1 style="text-align: center; font-size:50px">Vietnam Lubricant Import Share Report</h1></br>
-        <div>
+    <div id="content" >
+        <h1 style="text-align: center; font-size:50px; color: white">Vietnam Lubricant Import Share Report</h1></br>
+        <div style="color:white">
             <span><b>Introduction</b></span><br/>
             <span id="span11"> Vietnam Lubricant Import Share Report is including the analysis and calculation of ASHAVI</span><br/><br/>
             <span id="span11">The report includes the share of oil application which have been import to Vietnam by clients and competitors.</span><br/><br/>
@@ -49,15 +50,21 @@
         <div>
             <span><b>Report Content: </b></span><br/>
             {% if user.is_authenticated %}
-            <span id="span11"><a href={% url 'dashboard_1'%} style="color:hotpink">Part 1</a>: Importer Import volume & value</span><br/><br/>
-            <span id="span11"><a href={% url 'dashboard_2_1'%} style="color:hotpink">Part 2</a>: Lubricant / grease volume & value import by Industry</span><br/><br/>
-            <span id="span11"><a href={% url 'develope'%} style="color:hotpink">Part 3</a>: Competitor Import volume & value</span><br/><br/>
-            <span id="span11"><a href={% url 'develope'%} style="color:hotpink">Part 4</a>: Imported product volume & value</span><br/><br/><br/>
+            <div>
+                <span id="span11"><a id="a_format" href={% url 'dashboard_1'%} style="color:hotpink"></span>
+                <span id="span11"><a id="a_format" href={% url 'dashboard_1'%} style="color:hotpink">Part 1</a>: Importer Import volume & value</span><br/><br/>
+                <span id="span11"><a id="a_format" href={% url 'dashboard_2_1'%} style="color:hotpink">Part 2</a>: Lubricant / grease volume & value import by Industry</span><br/><br/>
+                <span id="span11"><a id="a_format" href={% url 'develope'%} style="color:hotpink">Part 3</a>: Competitor Import volume & value</span><br/><br/>
+                <span id="span11"><a id="a_format" href={% url 'develope'%} style="color:hotpink">Part 4</a>: Imported product volume & value</span><br/><br/><br/>
+            </div>
              {% else %}
-            <span id="span11"><a href={% url 'login'%}>Part 1</a>: Importer Import volume & value</span><br/><br/>
-            <span id="span11"><a href={% url 'login'%}>Part 2</a>: Lubricant / grease volume & value import by Industry</span><br/><br/>
-            <span id="span11"><a href={% url 'login'%}>Part 3</a>: Competitor Import volume & value</span><br/><br/>
-            <span id="span11"><a href={% url 'login'%}>Part 4</a>: Imported product volume & value</span><br/><br/><br/>
+            <div>
+                <span id="span11"><a id="a_format" href={% url 'login'%}></span>
+                <span id="span11"><a id="a_format" href={% url 'login'%}>Part 1</a>: Importer Import volume & value</span><br/><br/>
+                <span id="span11"><a id="a_format" href={% url 'login'%}>Part 2</a>: Lubricant / grease volume & value import by Industry</span><br/><br/>
+                <span id="span11"><a id="a_format" href={% url 'login'%}>Part 3</a>: Competitor Import volume & value</span><br/><br/>
+                <span id="span11"><a id="a_format" href={% url 'login'%}>Part 4</a>: Imported product volume & value</span><br/><br/><br/>
+            </div>
             {% endif %}
             <div>
                 {% if user.is_authenticated %}
@@ -71,3 +78,4 @@
 
     </div>
 
+{% endblock %}

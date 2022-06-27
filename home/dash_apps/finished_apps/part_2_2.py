@@ -79,28 +79,7 @@ app.layout = html.Div([
         html.Div([
             dt.DataTable(id='my_datatable',
                          columns=[{"name": i, "id": i} for i in df_result.columns],
-                                style_data_conditional=(
-                                     [
-                                         {
-                                             'if': {
-                                                 'filter_query': '{{{}}} > {}'.format(col, value),
-                                                 'column_id': col
-                                             },
-                                             'backgroundColor': '#3D9970',
-                                             'color': 'white'
-                                         } for (col, value) in df_result.quantile(0.1).iteritems()
-                                     ] +
-                                     [
-                                         {
-                                             'if': {
-                                                 'filter_query': '{{{}}} <= {}'.format(col, value),
-                                                 'column_id': col
-                                             },
-                                             'backgroundColor': '#FF4136',
-                                             'color': 'white'
-                                         } for (col, value) in df_result.quantile(0.5).iteritems()
-                                     ]
-                                    ),
+
                          sort_action="native",
                          style_table={"overflowX": "auto"},
                          sort_mode="multi",
