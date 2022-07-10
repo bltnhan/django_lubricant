@@ -26,8 +26,6 @@ def update_data(request):
 def on_develope(request):
     return render(request, 'on_develope.html', {})
 
-def dashboard_1_1(request):
-    return render(request, 'index1_1.html', {})
 def dashboard_2_1(request):
     return render(request, 'index2_1.html', {})
 
@@ -35,6 +33,13 @@ def dashboard_2_2(request):
     return render(request, 'index2_2.html', {})
 def dashboard_2_3(request):
     return render(request, 'index2_3.html', {})
+
+def dashboard_2_4(request):
+    return render(request, 'index2_4.html', {})
+def dashboard_3_1(request):
+    return render(request, 'index3_1.html', {})
+def dashboard_3_2(request):
+    return render(request, 'index3_2.html', {})
 
 def login_view(request):
     form = UserLoginForm(request.POST or None)
@@ -110,4 +115,4 @@ def password_reset_complete(request):
     return render(request, 'accounts/password_reset_complete.html', {})
 
 def notice_contact(request):
-    return HttpResponse('<p>Please visit us at address: <i>7A/43/24 Thanh Thai, Ward 14, District 10, Ho Chi Minh City, Vietnam</i></p>')
+    return HttpResponse('<p>Please visit us at addresspt: <i>7A/43/24 Thanh Thai, Ward 14, District 10, Ho Chi Minh City, Vietnam</i></p>')
