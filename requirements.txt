@@ -64,8 +64,6 @@ sqlparse==0.4.2
 tenacity==8.0.1
 Twisted==22.4.0
 twisted-iocpsupport==1.0.2
-=======
->>>>>>> 17e595c00db540e54c370a8d2a3bb14b422f3572
 txaio==22.2.1
 typing_extensions==4.2.0
 tzdata==2022.1
