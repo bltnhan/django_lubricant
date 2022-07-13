@@ -51,7 +51,7 @@ def login_view(request):
 
         return redirect('/')
     else:
-        HttpResponse('User này không tồn tại, vui lòng đăng nhập lại')
+        HttpResponse('User này không tpiồn tại, vui lòng đăng nhập lại')
     return render(request,'accounts/login.html', {'form':form})
 
 def register_view(request):
