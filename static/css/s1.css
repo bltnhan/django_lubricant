@@ -36,6 +36,38 @@
 
 /* Grid
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
+.drop-zone-columns {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  align-items: center;
+  margin: 1rem;
+}
+
+.drop-zone-dropdown {
+  margin: 1rem;
+  font-size: 1.428571rem !important;
+  font-family: Arial;
+  /*width:380px*/
+}
+#sum-amount-button:hover {
+
+  background-color: red;
+
+}
+#sum-volume-button:hover {
+
+  background-color: red;
+
+}
+
+.vertical-center {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+
+}
 .container {
   position: relative;
   width: 100%;

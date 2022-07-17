@@ -11,8 +11,10 @@ import dash_bootstrap_components as dbc
 import pathlib
 import urllib.request
 import numpy as np
-from . import lib, table_bars
+from dash_table.Format import Format, Scheme
 import plotly.express as px
+from. import table_bars
+from. import lib
 import urllib.request
 import requests
 import datetime
@@ -22,8 +24,14 @@ from queue import Queue
 import threading
 import time
 
+pd.options.display.float_format = '${:.2f}'.format
+# from dash.dash import no_update
+# from dash.exceptions import PreventUpdate
+bar_color_1 = "#60BF8F"
+bar_color_2 = "#4C97BF"
 progress_queue = Queue(1)
 progress_memeory = 0
+
 
 # DJANGO_VERSION
 file_name = str(pathlib.Path(__file__).name)[:-3]
@@ -46,7 +54,7 @@ date_time = datetime.datetime.fromtimestamp(m_time)
 d = date_time.strftime("%m/%d/%Y, %H:%M:%S")
 
 # call df
-df = pd.read_excel(data_path, sheet_name=0, usecols='A:AJ')
+df = pd.read_excel(data_path, sheet_name="Vietnam", usecols='A:AJ')
 # df_oil = pd.read_excel(oil_path, sheet_name=0, usecols= 'A:E')
 mapping = {df.columns[0]: 'ID', df.columns[1]: 'MONTH', df.columns[2]: 'YEAR', df.columns[3]: 'TAX_CODE',
            df.columns[4]: 'IMPORTER_NAME', df.columns[5]: 'INDUSTRY',
@@ -70,8 +78,8 @@ df = df[(df['VOLUME'] != "UNSPECIFY") & (df['TOTAL_AMT'] != "UNSPECIFY")]
 df['VOLUME'] = pd.to_numeric(df['VOLUME'], downcast="float")
 df['TOTAL_AMT'] = pd.to_numeric(df['TOTAL_AMT'], downcast="float")
 df['SEGMENT'] = df['SEGMENT'].replace('b2b', 'B2B')
-df['VOLUME'] = df['VOLUME'].map('{:,.2f}'.format)
-df['TOTAL_AMT'] = df['TOTAL_AMT'].map('{:,.2f}'.format)
+# df['VOLUME'] = df['VOLUME'].map('{:,.2f}'.format)
+# df['TOTAL_AMT'] = df['TOTAL_AMT'].map('{:,.2f}'.format)
 # TAO LIST MONTH, YEAR
 lst_month_org = list(df['MONTH'].unique())
 lst_month = []
@@ -99,7 +107,7 @@ app.layout = dbc.Container([
     # ----------------------------------------------------------------
     # Title, header
     dbc.Row([
-        html.Meta(httpEquiv="refresh", content="60")
+        html.Meta(httpEquiv="refresh", content="360")
     ]),
     dbc.Row([
         dbc.Col(
@@ -108,10 +116,22 @@ app.layout = dbc.Container([
                     style={'text-align': 'left', 'font-decoration': 'italic', 'font-family': 'Arial'}
                     ))
     ]),
-
+    # ----------------------------------------------------------------
+    # Download button
+    dbc.Row([
+        html.Div(children=[
+            html.H4(children='Update Latest Data', className="text text-info",
+                    style={'font-family': 'Arial', 'font-size': '16px'}, ),
+            dcc.Interval(id='clock', interval=1000, n_intervals=0, max_intervals=-1),
+            dbc.Progress(value=0, id="progress_bar"),
+            dash.html.Button("Click for Update", id='start_work', n_clicks=0, className="btn btn-danger",
+                             style={'font-family': 'Arial'}, )
+        ],
+        ),
+    ]),
     dbc.Row([
         dbc.Col(
-            html.H1(children=
+            html.H2(children=
                     title_page,
                     id='my_h1',
                     className='text-center text-success, mb-4'),
@@ -125,15 +145,15 @@ app.layout = dbc.Container([
                    style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}),
             dcc.Dropdown(
                 id='my_dd_year',
-                multi=True,
+                multi=False,
                 disabled=False,
                 style={'display': True},
                 placeholder='SELECT YEAR',
                 value='2022',
                 clearable=True,
                 options=[{'label': x, 'value': x}
-                         for x in list(df_groupby['YEAR'].unique()) + ['Select All']],
-                className='text-primary'
+                         for x in list(df_groupby['YEAR'].unique())],
+                className='drop-zone-dropdown'
             ),
             html.Br(),
             dcc.Dropdown(
@@ -146,7 +166,7 @@ app.layout = dbc.Container([
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['MONTH'].unique()) + ['Select All']],
-                className='text-primary'
+                className='drop-zone-dropdown'
             ),
             html.Br(),
             dcc.Dropdown(
@@ -155,22 +175,22 @@ app.layout = dbc.Container([
                 disabled=False,
                 style={'display': True},
                 placeholder='SELECT CLASS',
-                value=['1-COMPETITOR'],
+                # value = ['Competitor'],
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['CLASS'].unique()) + ['Select All']],
-                className='text-primary',
+                className='drop-zone-dropdown',
             ),
             html.Br(),
             dcc.Dropdown(
-                id='my_dd_segment', multi=True, value=['B2B'],
+                id='my_dd_segment', multi=True,
+                # value = ['B2B'],
                 clearable=True,
                 placeholder='SELECT SEGMENT',
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['SEGMENT'].unique()) + ['Select All']],
-                className='text-primary'
+                className='drop-zone-dropdown'
             ),
-
         ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}, width={"size": 2}
         ),
 
@@ -182,12 +202,13 @@ app.layout = dbc.Container([
                     dbc.CardBody(
                         html.H4(
                             "Top Industry Import (YTD)",
+                            id='my_h4_card',
                             className="card-text text-primary font-bold-weight text-center"),
                         style={"font-family": "Arial"}),
                     dbc.CardBody(
                         html.H1(
                             id='top_vol',
-                            children="",
+                            children=0,
                             className="card-text text-danger font-bold-weight text-center",
                             style={"font-size": "80px", "font-family": "Arial"}),
                     )],
@@ -233,75 +254,20 @@ app.layout = dbc.Container([
     ]),
     html.Br(),
     html.Br(),
-    # ----------------------------------------------------------------
-    # Download button
-    dbc.Row([
-        html.Div(children=[
-            html.H4(children='Update Latest Data', className="text text-info",
-                    style={'font-family': 'Arial', 'font-size': '16px'}, ),
-            dcc.Interval(id='clock', interval=1000, n_intervals=0, max_intervals=-1),
-            dbc.Progress(value=0, id="progress_bar"),
-            dash.html.Button("Click for Update", id='start_work', n_clicks=0, className="btn btn-danger",
-                             style={'font-family': 'Arial'}, )
-        ],
-        ),
-    ]),
+
     dbc.Row([
         dbc.Col([
             dbc.Col([
-                dt.DataTable(
-                    id='my_datatable_1',
-                    # columns=[{'name': i, 'id': i} for i in
-                    #         df_groupby.loc[:, ['TAX_CODE','IMPORTER_NAME', 'VOLUME', 'TOTAL_AMT']]],
-                    page_size=10,
-                    sort_action="native",
-                    style_table={"overflowX": "auto"},
-                    sort_mode="multi",
-                    # virtualization=True,
-                    style_cell={'textAlign': 'left',
-                                'min-width': '100px',
-                                'backgroundColor': '#F2F2F2',
-                                'font-family': 'Arial',
-                                },
-                    style_as_list_view=False,
-                    style_header={
-                        'backgroundColor': '#007DBF',
-                        'fontWeight': 'bold',
-                        'font': 'Arial',
-                        'color': 'white',
-                        'border': '1px solid #638E9E'
-                    },
-                    style_data_conditional=(
-                            [
-                                {
-                                    'if': {
-                                        'column_type': 'text'
-                                    },
-                                    'textAlign': 'left'
-                                },
-                                # Format active cells *********************************
-                                {
-                                    'if': {
-                                        'state': 'active'  # 'active' | 'selected'
-                                    },
-                                    'border': '3px solid rgb(0, 116, 217)'
-                                },
-                                {
-                                    'if': {
-                                        'column_editable': False  # True | False
-                                    },
-                                    'cursor': 'not-allowed'
-                                },
-                            ]
-                            # +
-                            # data_bars(df_groupby, 'VOLUME')
-                    ),
-                    style_data={'textOverflow': 'hidden', 'color': 'black',
-                                'border': '1px solid orange', 'height': 'auto'},
-                ),
+                html.H4(
+                    id='my_h4',
+                    children=[],
+                    style={'font-family': 'Arial'},
+                    className="card-text text-primary font-bold-weight text-center"),
+                html.Div(id='my_datatable', )
             ]),
 
         ], width={'size': 8}),
+        dcc.Store(id='store-data', data=[], storage_type='memory')
     ], align='top', justify='center', className='g-2'),
 ], fluid=True)
 
@@ -309,108 +275,195 @@ app.layout = dbc.Container([
 # ----------------------------------------------------------------
 # Callbacks day/month/class/segment
 @app.callback(
-    Output('my_dd_year', 'value'),
-    Input('my_dd_year', 'options'))
-def get_year_value(my_dd_year):
-    return [k['value'] for k in my_dd_year]
-
-
-@app.callback(
-    Output('my_dd_month', 'value'),
-    Input('my_dd_month', 'options'))
-def get_month_value(my_dd_month):
-    return [k['value'] for k in my_dd_month]
-
-
-@app.callback(
-    Output('my_dd_class', 'value'),
-    Input('my_dd_class', 'options'))
-def get_class_value(my_dd_class):
-    return [k['value'] for k in my_dd_class]
-
-
-@app.callback(
-    Output('my_dd_segment', 'value'),
-    Input('my_dd_segment', 'options'))
-def get_segment_value(my_dd_segment):
-    return [k['value'] for k in my_dd_segment]
-
-
-@app.callback(
-    [Output('top_vol', 'children'),
-     Output('my_datatable_1', 'data'),
-     Output('my_h1', 'children')],
-    [Input('sum-amount-btn', 'n_clicks_timestamp'),
-     Input('sum-volume-btn', 'n_clicks_timestamp'),
-     Input('my_dd_year', 'value'),
+    [Output('store-data', 'data'),
+     Output('my_h1', 'children'), ],
+    [Input('my_dd_year', 'value'),
      Input('my_dd_month', 'value'),
      Input('my_dd_class', 'value'),
      Input('my_dd_segment', 'value'), ]
 )
-def update_graph(amount_btn, volume_btn, my_dd_year, my_dd_month, my_dd_class, my_dd_segment):
-    # check if select _all
-    data_table = df_groupby.copy()
-    if "Select All" in my_dd_year:
-        data_table = data_table
-    else:
-        data_table = data_table[(data_table['YEAR'].isin(my_dd_year))]
+def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment):
+    dataset = df_groupby.copy()
+    if my_dd_year is not None:
+        dataset.loc[:] = dataset[dataset['YEAR'] == my_dd_year]
 
-    if "Select All" in my_dd_month:
-        data_table = data_table
-        title_ = f'{title_page} ' + ', '.join([month for month in lst_month])
-        title_ = title_ + ' of ' + ', '.join([str(year) for year in lst_year])
     else:
-        data_table = data_table[(data_table['MONTH'].isin(my_dd_month))]
-        title_ = f'{title_page} ' + ', '.join([month for month in my_dd_month])
-        title_ = title_ + ' of ' + ', '.join([str(year) for year in lst_year])
-
-    if "Select All" in my_dd_class:
-        data_table = data_table
+        dataset.loc[:] = dataset
+    if my_dd_month is not None:
+        if "Select All" in my_dd_month:
+            dataset = dataset
+            month_ = f'{title_page} ' + ', '.join([month for month in lst_month])
+            title_ = month_ + ' of ' + ', '.join([str(year) for year in lst_year])
+        else:
+            dataset.loc[:] = dataset[(dataset['MONTH'].isin(my_dd_month))]
+            month_ = f'{title_page} ' + ', '.join([month for month in my_dd_month])
+            title_ = month_ + ' of ' + ', '.join([str(year) for year in lst_year])
     else:
-        data_table = data_table[(data_table['CLASS'].isin(my_dd_class))]
+        dataset.loc[:] = dataset
+        title_ = title_page + ' of ' + ', '.join([str(year) for year in lst_year])
 
-    if "Select All" in my_dd_segment:
-        data_table = data_table
+    if my_dd_class is not None:
+        if "Select All" in my_dd_class:
+            dataset = dataset
+        else:
+            dataset.loc[:] = dataset[(dataset['CLASS'].isin(my_dd_class))]
     else:
-        data_table = data_table[(data_table['SEGMENT'].isin(my_dd_segment))]
+        dataset.loc[:] = dataset
 
-    if "Select All" in my_dd_month:
-
-        title_ = f'{title_page} ' + ', '.join([month for month in lst_month])
-        title_ = title_ + ' of ' + ', '.join([str(year) for year in lst_year])
+    if my_dd_segment is not None:
+        if "Select All" in my_dd_segment:
+            dataset = dataset
+        else:
+            dataset.loc[:] = dataset[(dataset['SEGMENT'].isin(my_dd_segment))]
     else:
-        title_ = f'{title_page} ' + ', '.join([month for month in my_dd_month])
-        title_ = title_ + ' of ' + ', '.join([str(year) for year in lst_year])
+        dataset.loc[:] = dataset
+
+    return dataset.to_dict('records'), title_
+
+
+@app.callback(
+    [Output('my_datatable', 'children'),
+     Output('my_h4', 'children'),
+     Output('top_vol', 'children'),
+     Output('my_h4_card', 'children'), ],
+    [Input('store-data', 'data'),
+     Input('my_dd_month', 'value'),
+     Input('sum-amount-btn', 'n_clicks_timestamp'),
+     Input('sum-volume-btn', 'n_clicks_timestamp'), ]
+
+)
+def update_graph(data, my_dd_month, amount_btn, volume_btn):
+    dff = pd.DataFrame(data)
+    data_ = dff.copy()
+    data_2 = dff.copy()
+    data_2['VOLUME'] = pd.to_numeric(data_['VOLUME'], errors='coerce')
+    data_2['TOTAL_AMT'] = pd.to_numeric(data_['TOTAL_AMT'], errors='coerce')
+    top_amt = data_2['TOTAL_AMT'].nlargest(1).values[0]
+    top_vol = data_2['VOLUME'].nlargest(1).values[0]
+    top_val = 0
+
     if int(amount_btn) > int(volume_btn):
-        df_result_vol = pd.pivot_table(data_table,
+        df_result_val = pd.pivot_table(data_,
                                        values='VOLUME',
                                        index=['YEAR', 'INDUSTRY'],
                                        columns=['MONTH'],
                                        aggfunc=['sum'],
                                        fill_value=0
                                        ).fillna(0).reset_index()
-        lib.rename_pivot_column(df_result_vol, False)
-        top_vol = data_table['VOLUME'].nlargest(1).values[0]
-        title_ = title_ + ' by Volume'
+        top_val = top_vol
+        lib.rename_pivot_column(df_result_val, False)
+
+        option_ = 'by Volume'
     else:
-        df_result_vol = pd.pivot_table(data_table,
+        df_result_val = pd.pivot_table(data_,
                                        values='TOTAL_AMT',
                                        index=['YEAR', 'INDUSTRY'],
                                        columns=['MONTH'],
                                        aggfunc=['sum'],
                                        fill_value=0
                                        ).fillna(0).reset_index()
-        lib.rename_pivot_column(df_result_vol, False)
-        top_vol = data_table['TOTAL_AMT'].nlargest(1).values[0]
-        title_ = title_ + ' by Amount'
+        top_val = top_amt
+        lib.rename_pivot_column(df_result_val, False)
+        option_ = ' by Amount'
 
-    top_vol = lib.human_format(top_vol)
+    lib.format_percent_df(df_result_val, 4, ['YEAR', 'INDUSTRY'])
 
-    lib.format_percent_df(df_result_vol, 2, ['YEAR', 'INDUSTRY'])
-    df_result_vol = lib.revert_month(df_result_vol, list(df_result_vol.columns), ['YEAR', 'INDUSTRY'])
+    df_result_val = lib.revert_month(df_result_val, list(df_result_val.columns), ['YEAR', 'INDUSTRY'])
+    df_result_val = df_result_val.drop(columns=['YEAR'], axis=1)
 
-    df_result_vol = df_result_vol.drop(columns=['YEAR'], axis=1)
-    return top_vol, df_result_vol.to_dict('records'), title_
+    # -------------------------------
+    # format column
+    columns = []
+    # format percentage, money
+    money = FormatTemplate.money(2)
+    percentage = FormatTemplate.percentage(2)
+    for col in df_result_val:
+        if df_result_val[col].dtype == 'float64':
+            item = dict(id=col, name=col, type='numeric', format=percentage)
+            columns.append(item)
+        else:
+            item = dict(id=col, name=col)
+            columns.append(item)
+            condition_format = [
+                {
+                    'if': {'column_id': 'YEAR'},
+                    'width': '70px'
+                },
+                {
+                    'if': {'column_id': 'IMPORTER_NAME'},
+                    'width': '250px'
+                },
+                {
+                    'if': {
+                        'column_type': 'text'
+                    },
+                    'textAlign': 'left'
+                },
+                {
+                    'if': {'row_index': 'odd'},
+                    'backgroundColor': 'rgb(248, 248, 248)'
+                },
+                {
+                    'if': {
+                        'column_type': 'numeric'
+                    },
+                    'textAlign': 'right'
+                },
+                {
+                    'if': {
+                        'column_id': 'VOLUME',
+                    },
+                    'textAlign': 'right',
+                },
+            ]
+    if my_dd_month is not None:
+        if "Select All" in my_dd_month:
+            # for month in lst_month:
+            #     condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
+            title_table = ', '.join([month for month in lst_month])
+            month_ = f'{title_page} ' + ', '.join([month for month in lst_month])
+
+        else:
+            # for month in my_dd_month:
+            #     condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
+            title_table = ', '.join([month for month in my_dd_month])
+            month_ = f'{title_page} ' + ', '.join([month for month in my_dd_month])
+
+    table_amt = dt.DataTable(
+        data=df_result_val.to_dict('records'),
+        columns=columns,
+        page_size=15,
+        sort_action="native",
+        style_cell={
+            'textAlign': 'left',
+            'min-width': '70px',
+            'max-width': '200px',
+            'backgroundColor': '',
+            'font-family': 'Arial',
+        },
+        style_header={
+            'backgroundColor': '#2A63AB',
+            'fontWeight': 'bold',
+            'textAlign': 'center',
+            'font': 'Arial',
+            'color': 'white',
+            'border': '1px solid 004761'
+        },
+
+        style_data={
+            'color': 'black',
+            'border': '1px solid #00008B',
+            'whiteSpace': 'normal',
+            'width': 'auto',
+            'height': 'auto',
+            'lineHeight': '15px'},
+        style_data_conditional=condition_format
+    )
+
+    top_val = lib.human_format(top_val)
+    title_table = f"Data Table {option_} in" + title_table
+    title_card = f"Top Industry Import (YTD) {option_}"
+    return table_amt, title_table, top_val, title_card
 
 
 # ----------------------------------------------------------------
@@ -445,8 +498,8 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
-                       'data/main_brand.xlsx']
+    list_file_names = ['home/dash_apps/finished_apps/data/data.xlsx', 'home/dash_apps/finished_apps/data/company_directory.xlsx', 'home/dash_apps/finished_apps/data/oil_application.xlsx',
+                       'home/dash_apps/finished_apps/data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:
@@ -470,6 +523,4 @@ def start_work(output_queue):
                     if output_queue.empty():
                         output_queue.put(i)
                     i += 1
-    return (None)
-
 
