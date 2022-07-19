@@ -23,7 +23,7 @@ import sys
 from queue import Queue
 import threading
 import time
-
+from datetime import datetime
 pd.options.display.float_format = '${:.2f}'.format
 # from dash.dash import no_update
 # from dash.exceptions import PreventUpdate
@@ -45,16 +45,16 @@ app.css.append_css({"external_url": "/static/css/s1.css"})
 # app.css.append_css({ "external_url" : "/static/css/s1.css" })
 
 
-
-#get time update
-data_path = 'home/dash_apps/finished_apps/data/data.xlsx'
+# get time update
+data_path = 'home/dash_apps/finished_apps/data/data.pkl'
 oil_path = 'home/dash_apps/finished_apps/data/oil_application.xlsx'
 m_time = os.path.getmtime(data_path)
-date_time = datetime.datetime.fromtimestamp(m_time)
+date_time = datetime.fromtimestamp(m_time)
 d = date_time.strftime("%m/%d/%Y, %H:%M:%S")
 
 # call df
-df = pd.read_excel(data_path, sheet_name="Vietnam", usecols='A:AJ')
+# df = pd.read_excel(demo_path, sheet_name="Vietnam", usecols= 'A:AJ')
+df = pd.read_pickle(data_path)
 df_oil = pd.read_excel(oil_path, sheet_name=0, usecols='A:E')
 mapping = {df.columns[0]: 'ID', df.columns[1]: 'MONTH', df.columns[2]: 'YEAR', df.columns[3]: 'TAX_CODE',
            df.columns[4]: 'IMPORTER_NAME', df.columns[5]: 'INDUSTRY',
@@ -146,35 +146,38 @@ app.layout = dbc.Container([
     # ----------------------------------------------------------------
     # Filter
     dbc.Row([
+        html.P('Select below options filters:',
+               style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}),
+    ]),
+    dbc.Row([
+
         dbc.Col([
-            html.P('Select below options filters:',
-                   style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}),
             dcc.Dropdown(
                 id='my_dd_year',
-                multi=False,
-                disabled=False,
+                multi=False, value='2022',
+                # disabled=False,
                 style={'display': True},
                 placeholder='SELECT YEAR',
-                value='2022',
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['YEAR'].unique())],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_month',
-                multi=True,
+                multi=True, value=['JAN'],
                 disabled=False,
                 style={'display': True},
                 placeholder='SELECT MONTH',
-                value=['JAN'],
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['MONTH'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_class',
                 multi=True,
@@ -185,9 +188,10 @@ app.layout = dbc.Container([
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['CLASS'].unique()) + ['Select All']],
-                className='drop-zone-dropdown',
+                className='dcc-compon',
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_segment', multi=True,
                 # value = ['B2B'],
@@ -195,13 +199,14 @@ app.layout = dbc.Container([
                 placeholder='SELECT SEGMENT',
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['SEGMENT'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
+        ], width={'size': 2}),
 
-        ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}, width={"size": 2}
-        ),
-        # ----------------------------------------------------------------
-        # Opional Sum
+    ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}),
+    # ----------------------------------------------------------------
+    # Opional Sum
+    dbc.Row([
         dbc.Col([
             dbc.Card([
                 dbc.CardBody(
@@ -235,7 +240,6 @@ app.layout = dbc.Container([
                 style={"width": "50rem", "height": "20rem", "border-radius": "10px", "padding": "5px", "margin": "5px"},
             ),
         ]),
-
     ], align='top', justify='center', className='g-2'),
     dbc.Row([
         dbc.Col([
@@ -397,50 +401,49 @@ def update_graph(data, my_dd_month, amount_btn, volume_btn, row_v):
     if my_dd_month is not None:
         if "Select All" in my_dd_month:
             # for month in lst_month:
-            #     condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
+                # condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
             title_table = ', '.join([month for month in lst_month])
 
 
         else:
-            # for month in my_dd_month:
-            #     condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
+            #for month in my_dd_month:
+                # condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
             title_table = ', '.join([month for month in my_dd_month])
     else:
-        # for month in lst_month:
-        #     condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
-
+        for month in lst_month:
+            condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
         title_table = ', '.join([month for month in lst_month])
 
     table_amt = dt.DataTable(
-            data=df_result_val.to_dict('records'),
-            columns=columns,
-            page_size=row_v,
-            sort_action="native",
-            style_cell={
-                'textAlign': 'left',
-                'min-width': '70px',
-                'max-width': '200px',
-                'backgroundColor': '',
-                'font-family': 'Arial',
-            },
-            style_header={
-                'backgroundColor': '#2A63AB',
-                'fontWeight': 'bold',
-                'textAlign': 'center',
-                'font': 'Arial',
-                'color': 'white',
-                'border': '1px solid 004761'
-            },
+        data=df_result_val.to_dict('records'),
+        columns=columns,
+        page_size=row_v,
+        sort_action="native",
+        style_cell={
+            'textAlign': 'left',
+            'min-width': '70px',
+            'max-width': '200px',
+            'backgroundColor': '',
+            'font-family': 'Arial',
+        },
+        style_header={
+            'backgroundColor': '#2A63AB',
+            'fontWeight': 'bold',
+            'textAlign': 'center',
+            'font': 'Arial',
+            'color': 'white',
+            'border': '1px solid 004761'
+        },
 
-            style_data={
-                'color': 'black',
-                'border': '1px solid #00008B',
-                'whiteSpace': 'normal',
-                'width': 'auto',
-                'height': 'auto',
-                'lineHeight': '15px'},
-            style_data_conditional=condition_format
-        )
+        style_data={
+            'color': 'black',
+            'border': '1px solid #00008B',
+            'whiteSpace': 'normal',
+            'width': 'auto',
+            'height': 'auto',
+            'lineHeight': '15px'},
+        style_data_conditional=condition_format
+    )
 
     title_table = f"Data Table {option_} in " + title_table
     return table_amt, title_table
@@ -478,8 +481,8 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-    list_file_names = ['home/dash_apps/finished_apps/data/data.xlsx', 'home/dash_apps/finished_apps/data/company_directory.xlsx', 'home/dash_apps/finished_apps/data/oil_application.xlsx',
-                       'home/dash_apps/finished_apps/data/main_brand.xlsx']
+    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
+                       'data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:
@@ -504,5 +507,3 @@ def start_work(output_queue):
                         output_queue.put(i)
                     i += 1
     return (None)
-
-

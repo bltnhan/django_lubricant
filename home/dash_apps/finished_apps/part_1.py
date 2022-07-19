@@ -23,8 +23,8 @@ import sys
 from queue import Queue
 import threading
 import time
-
-pd.options.display.float_format = '${:.2f}'.format
+from datetime import datetime
+pd.options.display.float_format = '{:.2f}'.format
 # from dash.dash import no_update
 # from dash.exceptions import PreventUpdate
 bar_color_1 = "#60BF8F"
@@ -52,16 +52,17 @@ app.css.append_css({ "external_url" : "/static/css/s1.css" })
 # app.config.suppress_callback_exceptions = True
 # app.css.config.serve_locally = False
 
-# get time update
 
-data_path = 'home/dash_apps/finished_apps/data/data.xlsx'
+# get time update
+data_path = 'home/dash_apps/finished_apps/data/data.pkl'
 oil_path = 'home/dash_apps/finished_apps/data/oil_application.xlsx'
 m_time = os.path.getmtime(data_path)
-date_time = datetime.datetime.fromtimestamp(m_time)
+date_time = datetime.fromtimestamp(m_time)
 d = date_time.strftime("%m/%d/%Y, %H:%M:%S")
 
 # call df
-df = pd.read_excel(data_path, sheet_name="Vietnam", usecols='A:AJ')
+# df = pd.read_excel(demo_path, sheet_name="Vietnam", usecols= 'A:AJ')
+df = pd.read_pickle(data_path)
 mapping = {df.columns[0]: 'ID', df.columns[1]: 'MONTH', df.columns[2]: 'YEAR', df.columns[3]: 'TAX_CODE',
            df.columns[4]: 'IMPORTER_NAME', df.columns[5]: 'INDUSTRY',
            df.columns[6]: 'INDUSTRY_CODE', df.columns[7]: 'CLASS', df.columns[8]: 'CLASS_CODE',
@@ -84,8 +85,6 @@ df = df[(df['VOLUME'] != "UNSPECIFY") & (df['TOTAL_AMT'] != "UNSPECIFY")]
 df['VOLUME'] = pd.to_numeric(df['VOLUME'], downcast="float")
 df['TOTAL_AMT'] = pd.to_numeric(df['TOTAL_AMT'], downcast="float")
 df['SEGMENT'] = df['SEGMENT'].replace('b2b', 'B2B')
-# df['VOLUME'] = df['VOLUME'].map('{:,.2f}'.format)
-# df['TOTAL_AMT'] = df['TOTAL_AMT'].map('{:,.2f}'.format)
 
 # TAO LIST MONTH, YEAR
 lst_month_org = list(df['MONTH'].unique())
@@ -125,7 +124,7 @@ app.layout = dbc.Container([
 
     dbc.Row([
         dbc.Col(
-            html.H2(children=
+            html.H1(children=
                     title_page,
                     id='my_h1',
                     className='text-center text-success, mb-4'),
@@ -135,35 +134,36 @@ app.layout = dbc.Container([
     # -----------
     # Filter
     dbc.Row([
+        html.P('Select below options filters:',
+               style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}), ]),
+    dbc.Row([
         dbc.Col([
-            html.P('Select below options filters:',
-                   style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}),
             dcc.Dropdown(
                 id='my_dd_year',
-                multi=False,
-                disabled=False,
+                multi=False, value='2022',
+                # disabled=False,
                 style={'display': True},
                 placeholder='SELECT YEAR',
-                # value = '2022',
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['YEAR'].unique())],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_month',
-                multi=True,
+                multi=True, value=['JAN'],
                 disabled=False,
                 style={'display': True},
                 placeholder='SELECT MONTH',
-                # value = ['JAN'],
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['MONTH'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_class',
                 multi=True,
@@ -174,22 +174,23 @@ app.layout = dbc.Container([
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['CLASS'].unique()) + ['Select All']],
-                className='drop-zone-dropdown',
+                className='dcc-compon',
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_segment', multi=True,
-                # value = ['B2B'],
+                value=['B2B'],
                 clearable=True,
                 placeholder='SELECT SEGMENT',
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['SEGMENT'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
+        ], width={'size': 2}),
 
-        ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}, width={"size": 2}
-        ),
-
+    ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}),
+    dbc.Row([
         dbc.Col([
             dbc.Row([
                 dbc.Card([
@@ -250,26 +251,34 @@ app.layout = dbc.Container([
             ], width={'size': 5}),
             html.Br(),
             html.Br(),
-            html.Div([
-                dcc.Dropdown(
-                    id='my_dd_importer',
-                    multi=True,
-                    disabled=False,
-                    style={'display': True, 'width': '500px', 'font-family': 'Arial'},
-                    options=[{'label': x, 'value': x}
-                             for x in list(df_groupby['IMPORTER_NAME'].unique()) + ['Select All']],
-                    placeholder='SEARCH FOR IMPORTER NAME',
-                    clearable=True,
-                    className='dcc_compon'
-                ),
-            ], className="d-grid gap-5 d-md-block"),
-            html.Br(),
-            html.Div([
-                dbc.Label("Show number of rows", style={'display': True, 'font-family': 'Arial'}),
-                dcc.Dropdown(value=10, clearable=False, style={'width': '35%'},
-                             options=[10, 25, 50, 100], id='row_drop'),
-            ], className="drop-zone-dropdown", style={'display': True, 'font-family': 'Arial'}, ),
-            html.Br(),
+            dbc.Row([
+                html.Div([
+                    dbc.Row([
+                        dbc.Col([dbc.Label("Show number of rows",
+                                           style={'display': True, 'font-family': 'Arial', 'width': '200px'}), ]),
+                        dbc.Col([dcc.Dropdown(value=10, clearable=False,
+                                              # # style={'width':'40%'}
+                                              # ,
+                                              options=[10, 25, 50, 100], id='row_drop'), ]),
+                    ]),
+                ], className="dcc_compon", style={'display': True, 'font-family': 'Arial'}, ),
+                html.Div([
+                    dbc.Label(),
+                    dcc.Dropdown(
+                        id='my_dd_importer',
+                        multi=True,
+                        disabled=False,
+                        style={'display': True, 'width': '500px', 'font-family': 'Arial'},
+                        value='off',
+                        options=[{'label': x, 'value': x}
+                                 for x in list(df_groupby['IMPORTER_NAME'].unique()) + ['Select All']],
+                        placeholder='SEARCH FOR IMPORTER NAME',
+                        clearable=True,
+                        className='dcc_compon'
+                    ),
+                ], className="d-grid gap-5 d-md-block"),
+
+            ]),
             dbc.Col([
                 html.Div(id="detail_datatable"),
             ]),
@@ -295,6 +304,19 @@ def clicked(ctx):
 
 
 @app.callback(
+    Output('my_dd_year', 'value'),
+    Input('my_dd_year', 'value'))
+def my_year(my_dd_year):
+    return my_dd_year
+
+
+# @app.callback(
+#     Output('my_dd_month', 'value'),
+#     Input('my_dd_month', 'value'))
+# def my_year(my_dd_month):
+#     return [k('value' )]
+
+@app.callback(
     [Output('store-data', 'data'),
      Output('my_dd_importer', 'disabled'),
      Output('my_h1', 'children'), ],
@@ -302,12 +324,15 @@ def clicked(ctx):
      Input('my_dd_month', 'value'),
      Input('my_dd_class', 'value'),
      Input('my_dd_segment', 'value'),
-     Input('my_dd_importer', 'value'), ]
+     Input('my_dd_importer', 'value'), ],
+    # prevent_initial_call = False
 )
 def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, my_dd_importer):
     dataset = df_groupby.copy()
     if my_dd_year is not None:
         dataset.loc[:] = dataset[dataset['YEAR'] == my_dd_year]
+    else:
+        dataset = dataset
     if my_dd_month is not None:
         if "Select All" in my_dd_month:
             dataset = dataset
@@ -318,7 +343,7 @@ def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, my_dd_import
             month_ = f'{title_page} ' + ', '.join([month for month in my_dd_month])
             title_ = month_ + ' of ' + ', '.join([str(year) for year in lst_year])
     else:
-        dataset.loc[:] = dataset
+        dataset = dataset
         title_ = title_page + ' of ' + ', '.join([str(year) for year in lst_year])
 
     if my_dd_class is not None:
@@ -327,7 +352,7 @@ def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, my_dd_import
         else:
             dataset.loc[:] = dataset[(dataset['CLASS'].isin(my_dd_class))]
     else:
-        dataset.loc[:] = dataset
+        dataset = dataset
 
     if my_dd_segment is not None:
         if "Select All" in my_dd_segment:
@@ -335,7 +360,7 @@ def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, my_dd_import
         else:
             dataset.loc[:] = dataset[(dataset['SEGMENT'].isin(my_dd_segment))]
     else:
-        dataset.loc[:] = dataset
+        dataset = dataset
 
     if my_dd_importer is not None:
 
@@ -430,9 +455,9 @@ def create_table_1(data):
      Output('total_vol', 'children'),
      Output('total_amount', 'children'), ],
     [Input('store-data', 'data'),
-    Input('row_drop', 'value')]
+     Input('row_drop', 'value')]
 )
-def create_table_2(data, row):
+def create_table_2(data, rov_v):
     dff = pd.DataFrame(data)
     table_detail = dff.copy()
     table_detail = table_detail.fillna(0)
@@ -466,7 +491,7 @@ def create_table_2(data, row):
         dt.DataTable(
             data=table_detail.to_dict('records'),
             columns=columns,
-            page_size=row,
+            page_size=rov_v,
             sort_action="native",
             style_table={"overflowX": "auto"},
             sort_mode="multi",
@@ -611,6 +636,7 @@ def start_bar(n):
         return (0,)
     threading.Thread(target=start_work, args=(progress_queue,)).start()
     return (0,)
+    1
 
 
 def start_work(output_queue):
@@ -620,9 +646,8 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-
-    list_file_names = ['home/dash_apps/finished_apps/data/data.xlsx', 'home/dash_apps/finished_apps/data/company_directory.xlsx', 'home/dash_apps/finished_apps/data/oil_application.xlsx',
-                       'home/dash_apps/finished_apps/data/main_brand.xlsx']
+    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
+                       'data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:
@@ -647,7 +672,3 @@ def start_work(output_queue):
                         output_queue.put(i)
                     i += 1
     return (None)
-
-
-if __name__ == '__main__':
-    app.run_server(debug=True, port=3000)

@@ -23,6 +23,7 @@ import sys
 from queue import Queue
 import threading
 import time
+from datetime import datetime
 
 pd.options.display.float_format = '${:.2f}'.format
 # from dash.dash import no_update
@@ -41,29 +42,30 @@ app = DjangoDash(f'{file_name}', external_stylesheets=external_stylesheets, add_
 app.css.append_css({"external_url": "/static/css/s1.css"})
 # app.css.append_css({ "external_url" : "/static/css/s1.css" })
 
-
-data_path = 'home/dash_apps/finished_apps/data/data.xlsx'
+#get time update
+data_path = 'home/dash_apps/finished_apps/data/data.pkl'
 oil_path = 'home/dash_apps/finished_apps/data/oil_application.xlsx'
 m_time = os.path.getmtime(data_path)
-date_time = datetime.datetime.fromtimestamp(m_time)
+date_time = datetime.fromtimestamp(m_time)
 d = date_time.strftime("%m/%d/%Y, %H:%M:%S")
 
 # call df
-df = pd.read_excel(data_path, sheet_name="Vietnam", usecols='A:AJ')
+# df = pd.read_excel(demo_path, sheet_name="Vietnam", usecols= 'A:AJ')
+df = pd.read_pickle(data_path)
 mapping = {df.columns[0]: 'ID', df.columns[1]: 'MONTH', df.columns[2]: 'YEAR', df.columns[3]: 'TAX_CODE',
            df.columns[4]: 'IMPORTER_NAME', df.columns[5]: 'INDUSTRY',
-df.columns[6]: 'INDUSTRY_CODE', df.columns[7]: 'CLASS', df.columns[8]: 'CLASS_CODE', df.columns[
-    9]: 'COMPANY_CLASSIFICATION', df.columns[10]: 'COMPANY_CLASSIFICATION_CODE',
-df.columns[11]: 'CITY', df.columns[12]: 'HSCODE', df.columns[13]: 'DESCRIPTION_VN', df.columns[14]: 'TYPE_OF_OIL',
-df.columns[15]: 'TYPE_CODE', df.columns[16]: 'BASE_OIL_FINISH_GOOD',
-df.columns[17]: 'OIL_CLASS_CODE', df.columns[18]: 'MOTHER_BRAND', df.columns[19]: 'MOTHER_BRAND_CODE',
-df.columns[20]: 'MAIN_BRAND', df.columns[21]: 'MAIN_BRAND_CODE', df.columns[22]: 'OIL_APPLICATION_CODE',
-df.columns[23]: 'OIL_APPLICATION_CHECK', df.columns[24]: 'VICOSITY_SPEC', df.columns[25]: 'QTY', df.columns[26]: 'UOM',
-df.columns[27]: 'PACK_SIZE', df.columns[28]: 'PACK_SPEC',
-df.columns[29]: 'QUANTITY_PER_PACK', df.columns[30]: 'VOLUME', df.columns[31]: 'SEGMENT', df.columns[
-    32]: 'TOTAL_INV_VALUE',
-df.columns[33]: 'CURRENCY', df.columns[34]: 'EXCHANGE_TO_USD', df.columns[35]: 'TOTAL_AMT'
-}
+           df.columns[6]: 'INDUSTRY_CODE', df.columns[7]: 'CLASS', df.columns[8]: 'CLASS_CODE',
+           df.columns[9]: 'COMPANY_CLASSIFICATION', df.columns[10]: 'COMPANY_CLASSIFICATION_CODE',
+           df.columns[11]: 'CITY', df.columns[12]: 'HSCODE', df.columns[13]: 'DESCRIPTION_VN',
+           df.columns[14]: 'TYPE_OF_OIL', df.columns[15]: 'TYPE_CODE', df.columns[16]: 'BASE_OIL_FINISH_GOOD',
+           df.columns[17]: 'OIL_CLASS_CODE', df.columns[18]: 'MOTHER_BRAND', df.columns[19]: 'MOTHER_BRAND_CODE',
+           df.columns[20]: 'MAIN_BRAND', df.columns[21]: 'MAIN_BRAND_CODE', df.columns[22]: 'OIL_APPLICATION_CODE',
+           df.columns[23]: 'OIL_APPLICATION_CHECK', df.columns[24]: 'VICOSITY_SPEC', df.columns[25]: 'QTY',
+           df.columns[26]: 'UOM', df.columns[27]: 'PACK_SIZE', df.columns[28]: 'PACK_SPEC',
+           df.columns[29]: 'QUANTITY_PER_PACK', df.columns[30]: 'VOLUME', df.columns[31]: 'SEGMENT',
+           df.columns[32]: 'TOTAL_INV_VALUE',
+           df.columns[33]: 'CURRENCY', df.columns[34]: 'EXCHANGE_TO_USD', df.columns[35]: 'TOTAL_AMT'
+           }
 df.rename(columns=mapping, inplace=True)
 
 df['CLASS'] = df['CLASS_CODE'].apply(lambda x: "Client" if x == 3 else "Trading" if x == 2 else "Competitor")
@@ -137,35 +139,46 @@ app.layout = dbc.Container([
     # Filter
     dbc.Row([
         dbc.Col([
-            html.P('Select below options filters:',
-                   style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}),
             dcc.Dropdown(
                 id='my_dd_year',
-                multi=False,
-                disabled=False,
+                multi=False, value='2022',
+                # disabled=False,
                 style={'display': True},
                 placeholder='SELECT YEAR',
-                # value = '2022',
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['YEAR'].unique())],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_month',
-                multi=True,
+                multi=True, value=['JAN'],
                 disabled=False,
-                value=['JAN'],
                 style={'display': True},
                 placeholder='SELECT MONTH',
-                # value = ['JAN'],
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['MONTH'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
+            dcc.Dropdown(
+                id='my_dd_class',
+                multi=True,
+                disabled=False,
+                style={'display': True},
+                placeholder='SELECT CLASS',
+                # value = ['Competitor'],
+                clearable=True,
+                options=[{'label': x, 'value': x}
+                         for x in list(df_groupby['CLASS'].unique()) + ['Select All']],
+                className='dcc-compon',
+            ),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_segment', multi=True,
                 # value = ['B2B'],
@@ -173,10 +186,12 @@ app.layout = dbc.Container([
                 placeholder='SELECT SEGMENT',
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['SEGMENT'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-        ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}, width={"size": 2}
-        ),
+        ], width={'size': 2}),
+
+    ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}),
+    dbc.Row([
         dbc.Col([
             dbc.Row([
                 dbc.Card([
@@ -213,7 +228,7 @@ app.layout = dbc.Container([
                            "margin": "5px"},
                 ),
             ], className='g-5'),
-        ], width={'offset': 2})
+        ], width={'offset': 3})
     ]),
     # ----------------------------------------------------------------
     # Download button
@@ -251,17 +266,18 @@ app.layout = dbc.Container([
     ], align='top', justify='center', className='g-2'),
 ], fluid=True)
 
- # ----------------------------------------------------------------
- # Callbacks store data
+
+# ----------------------------------------------------------------
+# Callbacks store data
+
 
 @app.callback(
-[Output('store-data', 'data'),
- Output('my_h1', 'children'), ],
-[Input('my_dd_year', 'value'),
- Input('my_dd_month', 'value'),
- Input('my_dd_segment', 'value')])
-
-
+    [Output('store-data', 'data'),
+     Output('my_h1', 'children'), ],
+    [Input('my_dd_year', 'value'),
+     Input('my_dd_month', 'value'),
+     Input('my_dd_segment', 'value'), ]
+)
 def store_data(my_dd_year, my_dd_month, my_dd_segment):
     dataset = df_groupby.copy()
     if my_dd_year is not None:
@@ -367,7 +383,7 @@ def create_table_amt(data, my_dd_month):
     if my_dd_month is not None:
         if "Select All" in my_dd_month:
             for month in lst_month:
-                condition_format = condition_format + data_bars(df_result_amt, month, bar_color_1)
+                condition_format = condition_format + table_bars.data_bars(df_result_amt, month, bar_color_1)
             title_table = ', '.join([month for month in lst_month])
 
 
@@ -581,8 +597,8 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-    list_file_names = ['home/dash_apps/finished_apps/data/data.xlsx', 'home/dash_apps/finished_apps/data/company_directory.xlsx', 'home/dash_apps/finished_apps/data/oil_application.xlsx',
-                       'home/dash_apps/finished_apps/data/main_brand.xlsx']
+    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
+                       'data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:
@@ -607,5 +623,6 @@ def start_work(output_queue):
                         output_queue.put(i)
                     i += 1
     return (None)
+
 
 

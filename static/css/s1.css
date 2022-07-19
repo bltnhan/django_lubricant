@@ -36,6 +36,13 @@
 
 /* Grid
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
+.dcc_compon {
+  margin: 0 auto;
+  padding: 5px;
+  width: calc(100%- 40px);
+  font-family:Arial ;
+}
+
 .drop-zone-columns {
   display: grid;
   grid-template-columns: 2rem 1fr;

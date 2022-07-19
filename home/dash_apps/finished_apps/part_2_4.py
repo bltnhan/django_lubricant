@@ -23,7 +23,7 @@ import sys
 from queue import Queue
 import threading
 import time
-
+from datetime import datetime
 pd.options.display.float_format = '${:.2f}'.format
 # from dash.dash import no_update
 # from dash.exceptions import PreventUpdate
@@ -45,16 +45,16 @@ app.css.append_css({"external_url": "/static/css/s1.css"})
 # app.css.append_css({ "external_url" : "/static/css/s1.css" })
 
 
-
-#get time update
-data_path = 'home/dash_apps/finished_apps/data/data.xlsx'
+# get time update
+data_path = 'home/dash_apps/finished_apps/data/data.pkl'
 oil_path = 'home/dash_apps/finished_apps/data/oil_application.xlsx'
 m_time = os.path.getmtime(data_path)
-date_time = datetime.datetime.fromtimestamp(m_time)
+date_time = datetime.fromtimestamp(m_time)
 d = date_time.strftime("%m/%d/%Y, %H:%M:%S")
 
 # call df
-df = pd.read_excel(data_path, sheet_name="Vietnam", usecols='A:AJ')
+# df = pd.read_excel(demo_path, sheet_name="Vietnam", usecols= 'A:AJ')
+df = pd.read_pickle(data_path)
 df_oil = pd.read_excel(oil_path, sheet_name=0, usecols='A:E')
 mapping = {df.columns[0]: 'ID', df.columns[1]: 'MONTH', df.columns[2]: 'YEAR', df.columns[3]: 'TAX_CODE',
            df.columns[4]: 'IMPORTER_NAME', df.columns[5]: 'INDUSTRY',
@@ -113,7 +113,7 @@ app.layout = dbc.Container([
     # ----------------------------------------------------------------
     # Title, header
     dbc.Row([
-        html.Meta(httpEquiv="refresh", content="360")
+        html.Meta(httpEquiv="refresh", content="60")
     ]),
     dbc.Row([
         dbc.Col(
@@ -149,34 +149,32 @@ app.layout = dbc.Container([
     # Filter
     dbc.Row([
         dbc.Col([
-            html.P('Select below options filters:',
-                   style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}),
             dcc.Dropdown(
                 id='my_dd_year',
-                multi=False,
-                disabled=False,
+                multi=False, value='2022',
+                # disabled=False,
                 style={'display': True},
                 placeholder='SELECT YEAR',
-                value='2022',
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['YEAR'].unique())],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_month',
-                multi=True,
+                multi=True, value=['JAN'],
                 disabled=False,
                 style={'display': True},
                 placeholder='SELECT MONTH',
-                value=['JAN'],
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['MONTH'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_class',
                 multi=True,
@@ -187,9 +185,10 @@ app.layout = dbc.Container([
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['CLASS'].unique()) + ['Select All']],
-                className='drop-zone-dropdown',
+                className='dcc-compon',
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_segment', multi=True,
                 # value = ['B2B'],
@@ -197,39 +196,44 @@ app.layout = dbc.Container([
                 placeholder='SELECT SEGMENT',
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['SEGMENT'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
 
-            # -------------------------------
-            # Search panel
-            html.P('Below item for Search Oil and Mother Brand:',
-                   style={'font-size': 13, 'font-family': 'Arial', 'color': '#2A63AB', 'text-align': 'left'}),
-            dcc.Dropdown(
-                id='my_dd_type_oil',
-                multi=True,
-                disabled=False,
-                style={'display': True, 'width': '500px', 'font-family': 'Arial'},
-                options=[{'label': x, 'value': x}
-                         for x in list(df_groupby['TYPE_OF_OIL'].unique()) + ['Select All']],
-                placeholder='SEARCH FOR TYPE OF OIL',
-                clearable=True,
-                className='drop-zone-dropdown'
-            ),
-            html.Br(),
-            dcc.Dropdown(
-                id='my_dd_mother_brand',
-                multi=True,
-                disabled=False,
-                style={'display': True, 'width': '500px', 'font-family': 'Arial'},
-                options=[{'label': x, 'value': x}
-                         for x in list(df_groupby['MOTHER_BRAND'].unique()) + ['Select All']],
-                placeholder='SEARCH FOR MOTHER BRAND',
-                clearable=True,
-                className='drop-zone-dropdown'
-            ),
-        ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}, width={"size": 2}
+    ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}),
+    html.Br(),
+    dbc.Row([
+        html.P('Below item for Search Oil and Mother Brand:',
+               style={'font-size': 13, 'font-family': 'Arial', 'color': '#2A63AB', 'text-align': 'left'}),
+        dcc.Dropdown(
+            id='my_dd_type_oil',
+            multi=True,
+            disabled=False,
+            style={'display': True, 'width': '500px', 'font-family': 'Arial'},
+            options=[{'label': x, 'value': x}
+                     for x in list(df_groupby['TYPE_OF_OIL'].unique()) + ['Select All']],
+            placeholder='SEARCH FOR TYPE OF OIL',
+            clearable=True,
+            className='drop-zone-dropdown'
         ),
+        html.Br(),
+        dcc.Dropdown(
+            id='my_dd_mother_brand',
+            multi=True,
+            disabled=False,
+            style={'display': True, 'width': '500px', 'font-family': 'Arial'},
+            options=[{'label': x, 'value': x}
+                     for x in list(df_groupby['MOTHER_BRAND'].unique()) + ['Select All']],
+            placeholder='SEARCH FOR MOTHER BRAND',
+            clearable=True,
+            className='drop-zone-dropdown'
+        ),
+    ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}
+    ),
+
+    # -------------------------------
+    # # Search panel
+    dbc.Row([
         dbc.Col([
 
         ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}, width={"size": 3}),
@@ -252,7 +256,7 @@ app.layout = dbc.Container([
             html.Div(id='my_datatable',
                      # style={'font-family':'Arial','display':'none'},
                      ),
-            dcc.Store(id='store-data', data=[], storage_type='memory')], ),
+            dcc.Store(id='store-data', data=[], storage_type='memory')])
     ], align='top', justify='center', className='g-2'),
 
 ], fluid=True)
@@ -466,8 +470,8 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-    list_file_names = ['home/dash_apps/finished_apps/data/data.xlsx', 'home/dash_apps/finished_apps/data/company_directory.xlsx', 'home/dash_apps/finished_apps/data/oil_application.xlsx',
-                       'home/dash_apps/finished_apps/data/main_brand.xlsx']
+    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
+                       'data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:

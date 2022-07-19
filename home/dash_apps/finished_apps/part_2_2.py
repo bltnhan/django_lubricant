@@ -23,6 +23,7 @@ import sys
 from queue import Queue
 import threading
 import time
+from datetime import datetime
 
 pd.options.display.float_format = '${:.2f}'.format
 # from dash.dash import no_update
@@ -47,14 +48,14 @@ app.css.append_css({"external_url": "/static/css/s1.css"})
 
 
 #get time update
-data_path = 'home/dash_apps/finished_apps/data/data.xlsx'
+data_path = 'home/dash_apps/finished_apps/data/data.pkl'
 oil_path = 'home/dash_apps/finished_apps/data/oil_application.xlsx'
 m_time = os.path.getmtime(data_path)
-date_time = datetime.datetime.fromtimestamp(m_time)
+date_time = datetime.fromtimestamp(m_time)
 d = date_time.strftime("%m/%d/%Y, %H:%M:%S")
 
 # call df
-df = pd.read_excel(data_path, sheet_name="Vietnam", usecols='A:AJ')
+df = pd.read_pickle(data_path)
 # df_oil = pd.read_excel(oil_path, sheet_name=0, usecols= 'A:E')
 mapping = {df.columns[0]: 'ID', df.columns[1]: 'MONTH', df.columns[2]: 'YEAR', df.columns[3]: 'TAX_CODE',
            df.columns[4]: 'IMPORTER_NAME', df.columns[5]: 'INDUSTRY',
