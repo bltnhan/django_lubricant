@@ -32,7 +32,6 @@ bar_color_1 = "#60BF8F"
 bar_color_2 = "#4C97BF"
 progress_queue = Queue(1)
 progress_memeory = 0
-
 # DJANGO_VERSION
 file_name = str(pathlib.Path(__file__).name)[:-3]
 
@@ -102,6 +101,7 @@ df_groupby['TOTAL_AMT'] = pd.to_numeric(df_groupby['TOTAL_AMT'], errors='coerce'
 # print(df_groupby.head(5))
 # title
 title_page = 'Part 2A: Importer Industry Import Volume & Value'
+
 app.layout = dbc.Container([
     # ----------------------------------------------------------------
     # Title, header
@@ -121,6 +121,7 @@ app.layout = dbc.Container([
                     style={'font-family': 'Arial', 'font-size': '16px'}, ),
             dcc.Interval(id='clock', interval=1000, n_intervals=0, max_intervals=-1),
             dbc.Progress(value=0, id="progress_bar"),
+            html.H4(children="", id='status', style={'font-family': 'Arial', 'font-size': '16px', 'color':'red'}),
             dash.html.Button("Click for Update", id='start_work', n_clicks=0, className="btn btn-danger",
                              style={'font-family': 'Arial'}, )
         ],
@@ -162,20 +163,6 @@ app.layout = dbc.Container([
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['MONTH'].unique()) + ['Select All']],
                 className='dcc-compon'
-            ),
-        ], width={'size': 2}),
-        dbc.Col([
-            dcc.Dropdown(
-                id='my_dd_class',
-                multi=True,
-                disabled=False,
-                style={'display': True},
-                placeholder='SELECT CLASS',
-                # value = ['Competitor'],
-                clearable=True,
-                options=[{'label': x, 'value': x}
-                         for x in list(df_groupby['CLASS'].unique()) + ['Select All']],
-                className='dcc-compon',
             ),
         ], width={'size': 2}),
         dbc.Col([
@@ -272,8 +259,13 @@ app.layout = dbc.Container([
 
 
 @app.callback(
-    [Output('store-data', 'data'),
-     Output('my_h1', 'children'), ],
+    [Output('datatable_amount', 'children'),
+     Output('my_h4_amt', 'children'),
+     Output('my_h1', 'children'),
+     Output('datatable_volume', 'children'),
+     Output('my_h4_vol', 'children'),
+     Output('total_vol', 'children'),
+     Output('total_amount', 'children'), ],
     [Input('my_dd_year', 'value'),
      Input('my_dd_month', 'value'),
      Input('my_dd_segment', 'value'), ]
@@ -302,19 +294,8 @@ def store_data(my_dd_year, my_dd_month, my_dd_segment):
             dataset.loc[:] = dataset[(dataset['SEGMENT'].isin(my_dd_segment))]
     else:
         dataset.loc[:] = dataset
-    return dataset.to_dict('records'), title_
 
-
-@app.callback(
-    [Output('datatable_amount', 'children'),
-     Output('my_h4_amt', 'children'), ],
-    [Input('store-data', 'data'),
-     Input('my_dd_month', 'value'), ],
-    prevent_initial_call=True,
-)
-def create_table_amt(data, my_dd_month):
-    dff = pd.DataFrame(data)
-    data_ = dff.copy()
+    data_ = dataset.copy()
     data_['INDUSTRY'] = data_['INDUSTRY'].fillna('Unspecify')
     df_result_amt = pd.pivot_table(data_,
                                    values='TOTAL_AMT',
@@ -384,13 +365,13 @@ def create_table_amt(data, my_dd_month):
         if "Select All" in my_dd_month:
             for month in lst_month:
                 condition_format = condition_format + table_bars.data_bars(df_result_amt, month, bar_color_1)
-            title_table = ', '.join([month for month in lst_month])
+            title_table_amt = ', '.join([month for month in lst_month])
 
 
         else:
             for month in my_dd_month:
                 condition_format = condition_format + table_bars.data_bars(df_result_amt, month, bar_color_1)
-            title_table = ', '.join([month for month in my_dd_month])
+            title_table_amt = ', '.join([month for month in my_dd_month])
     table_amt = dt.DataTable(
         data=df_result_amt.to_dict('records'),
         columns=columns,
@@ -421,21 +402,8 @@ def create_table_amt(data, my_dd_month):
             'lineHeight': '15px'},
         style_data_conditional=condition_format
     )
-    title_table = "Data Table by Amount in " + title_table
+    title_table_amt = "Data Table by Amount in " + title_table_amt
 
-    return table_amt, title_table
-
-
-@app.callback(
-    [Output('datatable_volume', 'children'),
-     Output('my_h4_vol', 'children'), ],
-    [Input('store-data', 'data'),
-     Input('my_dd_month', 'value'), ],
-    prevent_initial_call=True,
-)
-def create_table_vol(data, my_dd_month):
-    dff = pd.DataFrame(data)
-    data_ = dff.copy()
     data_['INDUSTRY'] = data_['INDUSTRY'].fillna('Unspecify')
 
     df_result_vol = pd.pivot_table(data_,
@@ -457,9 +425,10 @@ def create_table_vol(data, my_dd_month):
 
     columns = []
     for col in df_result_vol:
-        if df_result_vol[col].dtype == 'float64':
-            if col == 'VOLUME':
-                item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.2f'))  # Example result 47,359.02
+        if df_result_amt[col].dtype == 'float64' or df_result_amt[col].dtype == 'float32':
+            if col == 'TOTAL_AMT':
+                item = dict(id=col, name=col, type='numeric',
+                            format=Format(precision=4, scheme=Scheme.decimal_si_prefix))  # Example result 47,359.02
             elif col == 'YEAR':
                 item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.0f'))  # Example result 47,359
             else:
@@ -505,13 +474,13 @@ def create_table_vol(data, my_dd_month):
         if "Select All" in my_dd_month:
             for month in lst_month:
                 condition_format = condition_format + table_bars.data_bars(df_result_vol, month, bar_color_2)
-            title_table = ', '.join([month for month in lst_month])
+            title_table_vol = ', '.join([month for month in lst_month])
 
 
         else:
             for month in my_dd_month:
                 condition_format = condition_format + table_bars.data_bars(df_result_vol, month, bar_color_2)
-            title_table = ', '.join([month for month in my_dd_month])
+            title_table_vol = ', '.join([month for month in my_dd_month])
 
     table_vol = dt.DataTable(
         data=df_result_vol.to_dict('records'),
@@ -543,26 +512,16 @@ def create_table_vol(data, my_dd_month):
             'lineHeight': '15px'},
         style_data_conditional=condition_format
     )
-    title_table = "Data Table by Volume in " + title_table
-    return table_vol, title_table
+    title_table_vol = "Data Table by Volume in " + title_table_vol
 
-
-@app.callback(
-    [Output('total_vol', 'children'),
-     Output('total_amount', 'children'), ],
-    Input('store-data', 'data'),
-    prevent_initial_call=True,
-)
-def update_card(data):
-    dff = pd.DataFrame(data)
-    data_ = dff.copy()
+    data_ = dataset.copy()
     vol = data_['VOLUME'].sum(axis=0)
     amount = data_['TOTAL_AMT'].sum(axis=0)
     vol = lib.human_format(vol)
     amount = lib.human_format(amount)
     amount = '$' + str(amount)
 
-    return vol, amount
+    return table_amt, title_table_amt, title_, table_vol, title_table_vol, vol, amount
 
 
 # ----------------------------------------------------------------
@@ -587,7 +546,8 @@ def start_bar(n):
     if n == 0:
         return (0,)
     threading.Thread(target=start_work, args=(progress_queue,)).start()
-    return (0,)
+
+    return (0)
 
 
 def start_work(output_queue):
@@ -597,8 +557,11 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
-                       'data/main_brand.xlsx']
+    list_file_names = [
+        'home/dash_apps/finished_apps/data/data.xlsx',
+        'home/dash_apps/finished_apps/data/company_directory.xlsx'
+        , 'home/dash_apps/finished_apps/data/oil_application.xlsx',
+                       'home/dash_apps/finished_apps/data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:
@@ -622,7 +585,11 @@ def start_work(output_queue):
                     if output_queue.empty():
                         output_queue.put(i)
                     i += 1
-    return (None)
+
+        df = pd.read_excel('home/dash_apps/finished_apps/data/data.xlsx', sheet_name='Vietnam')
+        df.to_pickle(data_path)
+    return (0)
+
 
 
 

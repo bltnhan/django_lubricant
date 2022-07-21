@@ -225,8 +225,11 @@ app.layout = dbc.Container([
 # Callbacks day/month/class/segment
 
 @app.callback(
-    [Output('store-data', 'data'),
-     Output('my_h1', 'children'), ],
+    [Output('my_h1', 'children'),
+     Output('piechart_1', 'figure'),
+     Output('piechart_2', 'figure'),
+     Output('my_datatable', 'children'),
+     Output('my_h4', 'children'), ],
     [Input('my_dd_year', 'value'),
      Input('my_dd_month', 'value'),
      Input('my_dd_segment', 'value'), ]
@@ -259,23 +262,9 @@ def store_data(my_dd_year, my_dd_month, my_dd_segment):
     else:
         dataset.loc[:] = dataset
 
-    return dataset.to_dict('records'), title_
+    data_ = dataset.copy()
 
-
-@app.callback(
-    [Output('piechart_1', 'figure'),
-     Output('piechart_2', 'figure'),
-     Output('my_datatable', 'children'),
-     Output('my_h4', 'children'), ],
-    [Input('store-data', 'data'),
-     Input('my_dd_month', 'value')]
-
-)
-def update_graph(data, my_dd_month):
-    dff = pd.DataFrame(data)
-    data_ = dff.copy()
-
-    df_pivot = pd.pivot_table(dff,
+    df_pivot = pd.pivot_table(dataset,
                               values=['TOTAL_AMT', 'VOLUME'],
                               index=['YEAR', 'MOTHER_BRAND'],
                               columns=['MONTH'],
@@ -457,7 +446,8 @@ def update_graph(data, my_dd_month):
         style_data_conditional=condition_format
     )
     title_table = 'Competitor Import by Volume and Amount in ' + title_table
-    return pie_1, pie_2, table_amt, title_table,
+
+    return title_, pie_1, pie_2, table_amt, title_table,
 
 
 # ----------------------------------------------------------------
@@ -517,5 +507,7 @@ def start_work(output_queue):
                     if output_queue.empty():
                         output_queue.put(i)
                     i += 1
+        df = pd.read_excel('home/dash_apps/finished_apps/data/data.xlsx', sheet_name='Vietnam')
+        df.to_pickle(data_path)
     return (None)
 

@@ -54,12 +54,12 @@
             <h6 class="collapse-header">Choose 1 dashboard</h6>
             <a class="collapse-item text-danger" href={% url 'dashboard_1'%}>1. Importer Volume-Value
             </a>
-            <a class="collapse-item text-danger" href="#">2. Importer Volume in Year
+            <a class="collapse-item text-danger" href={% url 'dashboard_2_1'%}>2. Importer Volume in Year
                  <a class="collapse-item text-primary" href={% url 'dashboard_2_1'%}>2.1. by Volume</a>
-                <a class="collapse-item text-primary" href={% url 'dashboard_2_2'%}>2.2. by sector</a>
+                <a class="collapse-item text-primary" href={% url 'dashboard_2_2'%}>2.2. by Sector</a>
                 <a class="collapse-item text-primary" href={% url 'dashboard_2_3'%}>2.3. by Competitors</a>
                 <a class="collapse-item text-primary" href={% url 'dashboard_2_4'%}>2.4. by Type of oil</a>
-            <a class="collapse-item text-danger" href="#">3. Imported product share
+            <a class="collapse-item text-danger" href={% url 'dashboard_3_1'%}>3. Imported product share
                 <a class="collapse-item text-primary" href={% url 'dashboard_3_1'%}>3.1. by Market Segment</a>
                 <a class="collapse-item text-primary" href={% url 'dashboard_3_2'%}>3.2. by Oil App-Sector</a>
             </a>

@@ -107,8 +107,6 @@ df_groupby['TOTAL_AMT'] = pd.to_numeric(df['TOTAL_AMT'], errors='coerce')
 
 # title
 title_page = 'Part 3A: Imported product volume share in '
-
-# ----------------------------------------------------------------
 # layout
 app.layout = dbc.Container([
     # ----------------------------------------------------------------
@@ -261,19 +259,21 @@ app.layout = dbc.Container([
 
 
 # ----------------------------------------------------------------
-# Callbacks day/month/class/segment
-
-# ----------------------------------------------------------------
+# layout
 # Callbacks main
 @app.callback(
-    [Output('store-data', 'data'),
-     Output('my_h1', 'children'), ],
+    [Output('my_h1', 'children'),
+     Output('my_datatable', 'children'),
+     Output('my_h4', 'children'), ],
     [Input('my_dd_year', 'value'),
      Input('my_dd_month', 'value'),
      Input('my_dd_class', 'value'),
-     Input('my_dd_segment', 'value'), ]
+     Input('my_dd_segment', 'value'),
+     Input('sum-amount-btn', 'n_clicks_timestamp'),
+     Input('sum-volume-btn', 'n_clicks_timestamp'),
+     Input('row_drop', 'value')],
 )
-def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment):
+def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, amount_btn, volume_btn, row_v):
     dataset = df_groupby.copy()
     if my_dd_year is not None:
         dataset.loc[:] = dataset[dataset['YEAR'] == my_dd_year]
@@ -309,22 +309,7 @@ def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment):
     else:
         dataset.loc[:] = dataset
 
-    return dataset.to_dict('records'), title_
-
-
-@app.callback(
-    [Output('my_datatable', 'children'),
-     Output('my_h4', 'children'), ],
-    [Input('store-data', 'data'),
-     Input('my_dd_month', 'value'),
-     Input('sum-amount-btn', 'n_clicks_timestamp'),
-     Input('sum-volume-btn', 'n_clicks_timestamp'),
-     Input('row_drop', 'value')],
-
-)
-def update_graph(data, my_dd_month, amount_btn, volume_btn, row_v):
-    dff = pd.DataFrame(data)
-    data_ = dff.copy()
+    data_ = dataset.copy()
 
     if int(amount_btn) > int(volume_btn):
         option_ = f'by TYPE OF OIL'
@@ -360,59 +345,73 @@ def update_graph(data, my_dd_month, amount_btn, volume_btn, row_v):
     money = FormatTemplate.money(2)
     percentage = FormatTemplate.percentage(2)
     for col in df_result_val:
-        if df_result_val[col].dtype == 'float64':
+        if str(col).find('MOTHER_BRAND') == -1:
+            item = dict(id=col, name=col, type='numeric', format=percentage)
+            columns.append(item)
+        elif str(col).find('TYPE_OF_OIL') == -1:
             item = dict(id=col, name=col, type='numeric', format=percentage)
             columns.append(item)
         else:
             item = dict(id=col, name=col)
             columns.append(item)
-            condition_format = [
-                {
-                    'if': {'column_id': 'YEAR'},
-                    'width': '70px'
-                },
-                {
-                    'if': {'column_id': 'IMPORTER_NAME'},
-                    'width': '250px'
-                },
-                {
-                    'if': {
-                        'column_type': 'text'
-                    },
-                    'textAlign': 'left'
-                },
-                {
-                    'if': {'row_index': 'odd'},
-                    'backgroundColor': 'rgb(248, 248, 248)'
-                },
-                {
-                    'if': {
-                        'column_type': 'numeric'
-                    },
-                    'textAlign': 'right'
-                },
-                {
-                    'if': {
-                        'column_id': 'VOLUME',
-                    },
-                    'textAlign': 'right',
-                },
-            ]
+    condition_format = [
+        {
+            'if': {'column_id': 'YEAR'},
+            'width': '70px'
+        },
+        {
+            'if': {'column_id': 'IMPORTER_NAME'},
+            'width': '250px',
+
+        },
+        {
+        'if': {
+                  'column_id': 'TYPE_OF_OIL',
+              },
+              'textAlign': 'center',
+        },
+        {
+            'if': {
+                'column_id': 'MOTHER_BRAND',
+            },
+            'textAlign': 'center',
+        },
+        # {
+        #     'if': {
+        #         'column_type': 'text'
+        #     },
+        #     'textAlign': 'left'
+        # },
+        {
+            'if': {'row_index': 'odd'},
+            'backgroundColor': 'rgb(248, 248, 248)'
+        },
+        {
+            'if': {
+                'column_type': 'numeric'
+            },
+            'textAlign': 'right'
+        },
+        {
+            'if': {
+                'column_id': 'VOLUME',
+            },
+            'textAlign': 'right',
+        },
+    ]
+    # for col in df_result_val.columns:
+    #     if col != "MOTHER_BRAND":
+    #         # and str(col).find('TYPE_OF_OIL') == -1:
+    #         condition_format = condition_format + table_bars.data_bars(df_result_val, col, bar_color_1)
+
     if my_dd_month is not None:
         if "Select All" in my_dd_month:
-            # for month in lst_month:
-                # condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
             title_table = ', '.join([month for month in lst_month])
-
-
         else:
-            #for month in my_dd_month:
-                # condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
             title_table = ', '.join([month for month in my_dd_month])
     else:
-        for month in lst_month:
-            condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
-        title_table = ', '.join([month for month in lst_month])
+
+        title_table = ""
 
     table_amt = dt.DataTable(
         data=df_result_val.to_dict('records'),
@@ -446,7 +445,7 @@ def update_graph(data, my_dd_month, amount_btn, volume_btn, row_v):
     )
 
     title_table = f"Data Table {option_} in " + title_table
-    return table_amt, title_table
+    return title_, table_amt, title_table
 
 
 # ----------------------------------------------------------------
@@ -506,4 +505,6 @@ def start_work(output_queue):
                     if output_queue.empty():
                         output_queue.put(i)
                     i += 1
+        df = pd.read_excel('home/dash_apps/finished_apps/data/data.xlsx', sheet_name='Vietnam')
+        df.to_pickle(data_path)
     return (None)

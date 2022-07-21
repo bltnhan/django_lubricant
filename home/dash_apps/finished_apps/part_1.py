@@ -11,7 +11,7 @@ import dash_bootstrap_components as dbc
 import pathlib
 import urllib.request
 import numpy as np
-
+from dash_table.Format import Format, Scheme
 import plotly.express as px
 from. import table_bars
 from. import lib
@@ -24,6 +24,7 @@ from queue import Queue
 import threading
 import time
 from datetime import datetime
+
 pd.options.display.float_format = '{:.2f}'.format
 # from dash.dash import no_update
 # from dash.exceptions import PreventUpdate
@@ -31,29 +32,16 @@ bar_color_1 = "#60BF8F"
 bar_color_2 = "#4C97BF"
 progress_queue = Queue(1)
 progress_memeory = 0
-
 # DJANGO_VERSION
 file_name = str(pathlib.Path(__file__).name)[:-3]
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = DjangoDash(f'{file_name}', external_stylesheets=external_stylesheets, add_bootstrap_links=True)
-app.css.append_css({ "external_url" : "/static/css/s1.css" })
+app.css.append_css({"external_url": "/static/css/s1.css"})
+# app.css.append_css({ "external_url" : "/static/css/s1.css" })
 
-
-# app = DjangoDash(f'{file_name}', external_stylesheets=external_stylesheets)
-
-
-##DASH_VERSION =
-# app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
-#                 meta_tags=[{'name': 'viewport',
-#                             'content': 'width=device-width, initial-scale=1.0'}]
-#                 )
-# app.config.suppress_callback_exceptions = True
-# app.css.config.serve_locally = False
-
-
-# get time update
+#get time update
 data_path = 'home/dash_apps/finished_apps/data/data.pkl'
 oil_path = 'home/dash_apps/finished_apps/data/oil_application.xlsx'
 m_time = os.path.getmtime(data_path)
@@ -106,7 +94,6 @@ df_groupby['TOTAL_AMT'] = pd.to_numeric(df_groupby['TOTAL_AMT'], errors='coerce'
 
 # title
 title_page = 'Part 1: Importer Import Volume and Value'
-
 app.layout = dbc.Container([
     # ----------------------------------------------------------------
     # Title, header
@@ -153,8 +140,9 @@ app.layout = dbc.Container([
         dbc.Col([
             dcc.Dropdown(
                 id='my_dd_month',
-                multi=True, value=['JAN'],
+                multi=True,
                 disabled=False,
+                value=['Select All'],
                 style={'display': True},
                 placeholder='SELECT MONTH',
                 clearable=True,
@@ -180,7 +168,6 @@ app.layout = dbc.Container([
         dbc.Col([
             dcc.Dropdown(
                 id='my_dd_segment', multi=True,
-                value=['B2B'],
                 clearable=True,
                 placeholder='SELECT SEGMENT',
                 options=[{'label': x, 'value': x}
@@ -269,7 +256,7 @@ app.layout = dbc.Container([
                         multi=True,
                         disabled=False,
                         style={'display': True, 'width': '500px', 'font-family': 'Arial'},
-                        value='off',
+                        value=['Select All'],
                         options=[{'label': x, 'value': x}
                                  for x in list(df_groupby['IMPORTER_NAME'].unique()) + ['Select All']],
                         placeholder='SEARCH FOR IMPORTER NAME',
@@ -296,55 +283,40 @@ app.layout = dbc.Container([
 ], fluid=True)
 
 
-def clicked(ctx):
-    if not ctx.triggered or not ctx.triggered[0]['value']:
-        return None
-    else:
-        return ctx.triggered[0]['prop_id'].split('.')[0]
-
-
 @app.callback(
-    Output('my_dd_year', 'value'),
-    Input('my_dd_year', 'value'))
-def my_year(my_dd_year):
-    return my_dd_year
-
-
-# @app.callback(
-#     Output('my_dd_month', 'value'),
-#     Input('my_dd_month', 'value'))
-# def my_year(my_dd_month):
-#     return [k('value' )]
-
-@app.callback(
-    [Output('store-data', 'data'),
-     Output('my_dd_importer', 'disabled'),
-     Output('my_h1', 'children'), ],
+    [Output('main_datatable', 'children'),
+    Output('total_vol', 'children'),
+    Output('total_amount', 'children'),
+    Output('my_pie_1','figure'),
+    Output('my_pie_2','figure'),
+    Output('detail_datatable','children'),
+    Output('my_h1', 'children'),],
     [Input('my_dd_year', 'value'),
-     Input('my_dd_month', 'value'),
-     Input('my_dd_class', 'value'),
-     Input('my_dd_segment', 'value'),
-     Input('my_dd_importer', 'value'), ],
-    # prevent_initial_call = False
+    Input('my_dd_month', 'value'),
+    Input('my_dd_class', 'value'),
+    Input('my_dd_segment', 'value'),
+    Input('my_dd_importer', 'value'),
+    Input('row_drop', 'value')]
 )
-def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, my_dd_importer):
+def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, my_dd_importer, row_v):
     dataset = df_groupby.copy()
     if my_dd_year is not None:
-        dataset.loc[:] = dataset[dataset['YEAR'] == my_dd_year]
+        dataset.loc[:] = dataset[dataset['YEAR']==my_dd_year]
     else:
         dataset = dataset
+    title_ = title_page + ' of ' + str(my_dd_year)
     if my_dd_month is not None:
         if "Select All" in my_dd_month:
             dataset = dataset
             month_ = f'{title_page} ' + ', '.join([month for month in lst_month])
-            title_ = month_ + ' of ' + ', '.join([str(year) for year in lst_year])
+            title_ = month_ + ' of ' + str(my_dd_year)
         else:
             dataset.loc[:] = dataset[(dataset['MONTH'].isin(my_dd_month))]
             month_ = f'{title_page} ' + ', '.join([month for month in my_dd_month])
-            title_ = month_ + ' of ' + ', '.join([str(year) for year in lst_year])
+            title_ = month_ + ' of ' + str(my_dd_year)
     else:
         dataset = dataset
-        title_ = title_page + ' of ' + ', '.join([str(year) for year in lst_year])
+        title_ = title_page + ' of ' + str(my_dd_year)
 
     if my_dd_class is not None:
         if "Select All" in my_dd_class:
@@ -362,106 +334,24 @@ def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, my_dd_import
     else:
         dataset = dataset
 
+
     if my_dd_importer is not None:
 
         if "Select All" in my_dd_importer:
             list_import = [x for x in list(df_groupby['IMPORTER_NAME'].unique())]
-            dataset.loc[:] = dataset[dataset['IMPORTER_NAME'].isin(list_import)]
+            dataset.loc[:] =dataset[dataset['IMPORTER_NAME'].isin(list_import)]
         else:
-            dataset.loc[:] = dataset[dataset['IMPORTER_NAME'].isin(my_dd_importer)]
+            dataset = dataset[dataset['IMPORTER_NAME'].isin(my_dd_importer)]
+
     else:
         dataset.loc[:] = dataset
-    disabled_list = False
-    return dataset.to_dict('records'), disabled_list, title_
 
 
-@app.callback(
-    Output('main_datatable', 'children'),
-    Input('store-data', 'data'),
-    prevent_initial_call=True,
-)
-def create_table_1(data):
-    dff = pd.DataFrame(data)
-    table_main = dff.groupby(by='CLASS').agg({'VOLUME': 'sum', 'TOTAL_AMT': 'sum'}).reset_index()
+    table_main = dataset.groupby(by='CLASS').agg({'VOLUME':'sum', 'TOTAL_AMT':'sum'}).reset_index()
+    table_detail = dataset[['TAX_CODE','IMPORTER_NAME','SEGMENT', 'VOLUME', 'TOTAL_AMT']]
     table_main = table_main.fillna(0)
-    columns = []
-    for col in table_main:
-        if table_main[col].dtype == 'float64':
-            if col == 'TOTAL_AMT':
-                item = dict(id=col, name=col, type='numeric',
-                            format=dict(specifier='$,.2f'))  # Example result 47,359.02
-            elif col == 'YEAR':
-                item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.0f'))  # Example result 47,359
-            else:
-                item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.2f'))
-            columns.append(item)
-        else:
-            item = dict(id=col, name=col)
-            columns.append(item)
-    # table_main['VOLUME'] = table_main['VOLUME'].map('{:,.2f}'.format)
-    # table_main['TOTAL_AMT'] = table_main['TOTAL_AMT'].map('${:,.2f}'.format)
-    return dt.DataTable(
-        data=table_main.to_dict('records'),
-        columns=columns,
-        style_cell={'textAlign': 'left',
-                    'min-width': '100px',
-                    'max-width': '100px',
-                    'backgroundColor': '',
-                    'font-family': 'Arial',
-                    },
-        style_header={
-            'backgroundColor': '#2A63AB',
-            'fontWeight': 'bold',
-            'textAlign': 'center',
-            'font': 'Arial',
-            'color': 'white',
-            'border': '1px solid 004761'
-        },
-
-        style_data={'color': 'black',
-                    'border': '1px solid #00008B',
-                    'textAlign': 'center'},
-        style_data_conditional=(
-                [
-                    {
-                        'if': {
-                            'column_type': 'text'
-                        },
-                        'textAlign': 'left'
-                    },
-                    {
-                        'if': {
-                            'column_type': 'numeric'
-                        },
-                        'textAlign': 'right'
-                    },
-
-                    {
-                        'if': {
-                            'column_id': 'VOLUME',
-                        },
-                        'textAlign': 'right',
-                    },
-                ]
-                +
-                table_bars.data_bars(table_main, 'VOLUME', bar_color_1)
-                +
-                table_bars.data_bars(table_main, 'TOTAL_AMT', bar_color_2))
-    )
-
-
-@app.callback(
-    [Output('detail_datatable', 'children'),
-     Output('total_vol', 'children'),
-     Output('total_amount', 'children'), ],
-    [Input('store-data', 'data'),
-     Input('row_drop', 'value')]
-)
-def create_table_2(data, rov_v):
-    dff = pd.DataFrame(data)
-    table_detail = dff.copy()
     table_detail = table_detail.fillna(0)
-    # table_detail = table_detail[table_detail['IMPORTER_NAME']!=0]
+
 
     vol = table_detail['VOLUME'].sum(axis=0)
     amount = table_detail['TOTAL_AMT'].sum(axis=0)
@@ -469,29 +359,159 @@ def create_table_2(data, rov_v):
     amount = lib.human_format(amount)
     amount = '$' + str(amount)
 
-    table_detail = table_detail[(table_detail['IMPORTER_NAME'] != 0)].sort_values('TOTAL_AMT', ascending=False)
-    table_detail['YEAR'] = table_detail['YEAR'].map(int)
-    columns = []
-    for col in table_detail:
-        if table_detail[col].dtype == 'float64':
-            if col == 'TOTAL_AMT':
-                item = dict(id=col, name=col, type='numeric',
-                            format=dict(specifier='$,.2f'))  # Example result 47,359.02
-            elif col == 'YEAR':
-                item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.0f'))  # Example result 47,359
-            else:
-                item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.2f'))
+# options dropdown_importer name
 
+    fig_vol = px.pie(
+        table_detail,
+        names='SEGMENT',
+        values='VOLUME',
+        hole=0.7,
+        color_discrete_sequence=px.colors.sequential.Turbo_r,)
+    fig_amount = px.pie(
+        table_detail,
+        names='SEGMENT',
+        values='TOTAL_AMT',
+        hole=0.7,
+        color_discrete_sequence=["#007DBF","#0C7C59","#004761","#60BF8F","#4DB299","#3AA5A2","#2697AC","#138AB5","#007DBF","#266379","#638E9E","#2A63AB","#0C3C80","#001842"]
+,)
+    columns=[]
+    for col in table_main:
+        if col == 'TOTAL_AMT':
+            item = dict(id=col, name=col, type='numeric', format=Format(precision=4, scheme=Scheme.decimal_si_prefix))  # Example result 47,359.02
+            columns.append(item)
+        elif col == 'VOLUME':
+            item = dict(id=col, name=col, type='numeric', format=Format(precision=4, scheme=Scheme.decimal_si_prefix))
+            columns.append(item)
+        elif col == 'YEAR':
+            item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.0f'))  # Example result 47,359
+            columns.append(item)
+        else:
+            item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.2f'))
+            columns.append(item)
+        # else:
+        #     item = dict(id=col, name=col)
+        #     columns.append(item)
+    condition_format =  (  [
+                    {
+                        'if': {'column_id': 'CLASS'},
+                        'textAlign': 'left'
+                        },
+                    {
+                        'if': {'column_id': 'IMPORTER_NAME'},
+                        'width': '250px'
+                        },
+                    {
+                        'if': {
+                            'column_type': 'text'
+                        },
+                        'textAlign': 'left'
+                    },
+                    {
+                        'if': {'row_index': 'odd'},
+                        'backgroundColor': 'rgb(248, 248, 248)'
+                    },
+                    {
+                        'if': {
+                            'column_type': 'numeric'
+                        },
+                        'textAlign': 'right'
+                    },
+			        {
+                        'if': {
+                            'column_id': 'VOLUME',
+                        },
+                        'textAlign': 'right',
+                        },
+                ]
+                +
+                table_bars.data_bars(table_main, 'VOLUME', bar_color_1)
+                +
+                table_bars.data_bars(table_main, 'TOTAL_AMT', bar_color_1)
+            )
+
+    datatable_main =  dt.DataTable(
+            data=table_main.to_dict('records'),
+            columns=columns,
+            style_cell={'textAlign': 'left',
+                                'min-width': '100px',
+                                'max-width': '100px',
+                                'backgroundColor': '',
+                                'font-family': 'Arial',
+                                },
+            style_header={
+                'backgroundColor': '#2A63AB',
+                'fontWeight': 'bold',
+                'textAlign': 'center',
+                'font': 'Arial',
+                'color': 'white',
+                'border': '1px solid 004761'
+            },
+
+            style_data={ 'color': 'black',
+                        'border': '1px solid #00008B',
+                        'textAlign': 'center'},
+            style_data_conditional= condition_format)
+
+    columns=[]
+    for col in table_detail:
+        if col == 'TOTAL_AMT':
+            item = dict(id=col, name=col, type='numeric', format=Format(precision=4, scheme=Scheme.decimal_si_prefix))  # Example result 47,359.02
+            columns.append(item)
+        elif col == 'VOLUME':
+            item = dict(id=col, name=col, type='numeric', format=Format(precision=4, scheme=Scheme.decimal_si_prefix))
+            columns.append(item)
+        elif col == 'YEAR':
+            item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.0f'))
             columns.append(item)
         else:
             item = dict(id=col, name=col)
             columns.append(item)
+        # else:
+        #     item = dict(id=col, name=col)
+        #     columns.append(item)
+    condition_format =   ( [
+                    {
+                        'if': {'column_id': 'TAX_CODE'},
+                        'width': '70px'
+                        },
+                    {
+                        'if': {'column_id': 'IMPORTER_NAME'},
+                        'width': '300px'
+                        },
+                    {
+                        'if': {
+                            'column_type': 'text'
+                        },
+                        'textAlign': 'left'
+                    },
+                    {
+                        'if': {'row_index': 'odd'},
+                        'backgroundColor': 'rgb(248, 248, 248)'
+                    },
+                    {
+                        'if': {
+                            'column_type': 'numeric'
+                        },
+                        'textAlign': 'right'
+                    },
+			        {
+                        'if': {
+                            'column_id': 'VOLUME',
+                        },
+                        'textAlign': 'right',
+                        },
+                ]
+                +
+                table_bars.data_bars(table_detail, 'VOLUME', bar_color_2)
+                +
+                table_bars.data_bars(table_detail, 'TOTAL_AMT', bar_color_2)
+            )
 
-    data_table = \
+    datatable_detail =  \
         dt.DataTable(
             data=table_detail.to_dict('records'),
             columns=columns,
-            page_size=rov_v,
+            page_size= row_v,
             sort_action="native",
             style_table={"overflowX": "auto"},
             sort_mode="multi",
@@ -503,118 +523,29 @@ def create_table_2(data, rov_v):
                         },
             style_as_list_view=False,
             style_header={
-                'backgroundColor': '#4DB299',
-                'fontWeight': 'bold',
-                'font': 'Arial',
-                'textAlign': 'center',
-                'color': 'white',
-                'border': '1px solid #9A38D5'
+                        'backgroundColor': '#4DB299',
+                        'fontWeight': 'bold',
+                        'font': 'Arial',
+                        'textAlign': 'center',
+                        'color': 'white',
+                        'border': '1px solid #9A38D5'
             },
 
             style_data={
-                'color': 'black',
-                'border': '1px solid #00008B',
-                'textAlign': 'center',
-                'whiteSpace': 'normal',
-                'height': 'auto',
-                'lineHeight': '15px'},
-            style_data_conditional=(
-                    [
-                        {
-                            'if': {
-                                'column_type': 'text'
-                            },
-                            'textAlign': 'left'
-                        },
-                        {
-                            'if': {'row_index': 'odd'},
-                            'backgroundColor': 'rgb(248, 248, 248)'
-                        },
-                        {
-                            'if': {
-                                'column_type': 'numeric'
-                            },
-                            'textAlign': 'right'
-                        },
+                         'color': 'black',
+                        'border': '1px solid #00008B',
+                        'textAlign': 'center',
+                        'whiteSpace': 'normal',
+                        'height': 'auto',
+                        'lineHeight': '15px'},
+            style_data_conditional= condition_format)
 
-                        {
-                            'if': {
-                                'column_id': 'VOLUME',
-                            },
-                            'textAlign': 'right',
-                        },
-                    ]
-                    +
-                    table_bars.data_bars(table_detail, 'VOLUME', bar_color_1)
-                    +
-                    table_bars.data_bars(table_detail, 'TOTAL_AMT', bar_color_2))
-        )
-    return data_table, vol, amount
+    return datatable_main, vol, amount, fig_vol, fig_amount, datatable_detail, title_
 
 
-@app.callback(
-    [Output('my_pie_1', 'figure'),
-     Output('my_pie_2', 'figure')],
-    Input('store-data', 'data'),
-)
-def create_pie(data):
-    dff = pd.DataFrame(data)
-    table_detail = dff.copy()
-    table_detail = table_detail.fillna(0)
-    table_detail.loc[:] = table_detail.groupby(
-        by=['YEAR', 'MONTH', 'TAX_CODE', 'IMPORTER_NAME', 'CLASS', 'SEGMENT']).agg(
-        {'VOLUME': 'sum', 'TOTAL_AMT': 'sum'}).reset_index()
-    table_detail.loc[:] = table_detail[(table_detail['SEGMENT'] != 0)]
-    select_year = ', '.join([str(year) for year in list(table_detail['YEAR'].unique())])
-    month_ = ', '.join([str(month) for month in list(table_detail['MONTH'].unique())])
-    fig_vol = px.pie(
-        table_detail,
-        names='SEGMENT',
-        values='VOLUME',
-        hole=0.7,
-        color_discrete_sequence=px.colors.sequential.Turbo_r, )
-    fig_amount = px.pie(
-        table_detail,
-        names='SEGMENT',
-        values='TOTAL_AMT',
-        hole=0.7,
-        color_discrete_sequence=["#007DBF", "#0C7C59", "#004761", "#60BF8F", "#4DB299", "#3AA5A2", "#2697AC", "#138AB5",
-                                 "#007DBF", "#266379", "#638E9E", "#2A63AB", "#0C3C80", "#001842"]
-        , )
 
-    fig_vol.update_layout(
-        title=dict(
-            text=f'<b style="text-align:center;">Vol by Segment in {month_} of year {select_year}',
-            x=0.5,
-            y=0.95,
-            font=dict(
-                family="Arial",
-                size=14,
-                color='#638E9E'
-            ),
-        )
-    )
-    fig_amount.update_layout(
-        title=dict(
-            text=f'<b style="text-align:center;">Amount by Segment in {month_} of year {select_year}',
-            x=0.5,
-            y=0.95,
-            font=dict(
-                family="Arial",
-                size=14,
-                color='#638E9E'
-            ),
-        )
-    )
-    return fig_vol, fig_amount
-
-
-# ----------------------------------------------------------------
-# Callbacks for search results
-
-
-# ----------------------------------------------------------------
-# Callbacks progress_Bar
+#----------------------------------------------------------------
+#Callbacks progress_Bar
 @app.callback(
     Output('progress_bar', 'value'),
     Input('clock', 'n_intervals'))
@@ -625,18 +556,16 @@ def progress_bar_update(n):
         progress_memeory = progress_bar_val
     else:
         progress_bar_val = progress_memeory
-    return (progress_bar_val,)
-
+    return(progress_bar_val,)
 
 @app.callback([
     Output("start_work", "n_clicks")],
     [Input("start_work", "n_clicks")])
 def start_bar(n):
-    if n == 0:
-        return (0,)
+    if n==0:
+        return(0,)
     threading.Thread(target=start_work, args=(progress_queue,)).start()
-    return (0,)
-    1
+    return(0,)
 
 
 def start_work(output_queue):
@@ -646,15 +575,14 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
-                       'data/main_brand.xlsx']
+    list_file_names = ['data/data.xlsx','data/company_directory.xlsx', 'data/oil_application.xlsx', 'data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:
             response = requests.get(link, stream=True)
             total_length = response.headers.get('content-length')
 
-            if total_length is None:  # no content length header
+            if total_length is None: # no content length header
                 f.write(response.content)
             else:
                 dl = 0
@@ -663,7 +591,7 @@ def start_work(output_queue):
                     dl += len(data)
                     f.write(data)
                     done = int(50 * dl / total_length)
-                    sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50 - done)))
+                    sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50-done)) )
                     sys.stdout.flush()
                 i = 0
                 while i < 101:
@@ -671,4 +599,7 @@ def start_work(output_queue):
                     if output_queue.empty():
                         output_queue.put(i)
                     i += 1
-    return (None)
+        df = pd.read_excel('home/dash_apps/finished_apps/data/data.xlsx', sheet_name='Vietnam')
+        df.to_pickle(data_path)
+    return(None)
+

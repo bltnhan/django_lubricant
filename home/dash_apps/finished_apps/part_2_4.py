@@ -250,7 +250,7 @@ app.layout = dbc.Container([
             html.Div([
                 dbc.Label("Show number of rows", style={'display': True, 'font-family': 'Arial'}),
                 dcc.Dropdown(value=10, clearable=False, style={'width': '35%'},
-                             options=[10, 25, 50, 100], id='row_drop'),
+                             options=[10, 25, 50], id='row_drop'),
             ], className="drop-zone-dropdown", style={'display': True, 'font-family': 'Arial'}, ),
 
             html.Div(id='my_datatable',
@@ -266,16 +266,17 @@ app.layout = dbc.Container([
 # Callbacks day/month/class/segment
 
 @app.callback(
-    [Output('store-data', 'data'),
-     Output('my_h1', 'children'), ],
+    [Output('my_h1', 'children'),
+     Output('my_datatable', 'children'),
+     Output('my_h4', 'children'), ],
     [Input('my_dd_year', 'value'),
      Input('my_dd_month', 'value'),
      Input('my_dd_segment', 'value'),
      Input('my_dd_type_oil', 'value'),
      Input('my_dd_mother_brand', 'value'),
-     ]
+     Input('row_drop', 'value')]
 )
-def store_data(my_dd_year, my_dd_month, my_dd_segment, my_dd_type_oil, my_dd_mother_brand):
+def store_data(my_dd_year, my_dd_month, my_dd_segment, my_dd_type_oil, my_dd_mother_brand, row):
     dataset = df_groupby.copy()
     if my_dd_year is not None:
         dataset.loc[:] = dataset[dataset['YEAR'] == my_dd_year]
@@ -319,21 +320,9 @@ def store_data(my_dd_year, my_dd_month, my_dd_segment, my_dd_type_oil, my_dd_mot
     else:
         dataset.loc[:] = dataset
 
-    return dataset.to_dict('records'), title_
+    data_ = dataset.copy()
 
-
-@app.callback(
-    [Output('my_datatable', 'children'),
-     Output('my_h4', 'children'), ],
-    [Input('store-data', 'data'),
-     Input('row_drop', 'value')],
-    prevent_initial_call=True,
-)
-def update_graph(data, row):
-    dff = pd.DataFrame(data)
-    data_ = dff.copy()
-
-    df_pivot = pd.pivot_table(data_,
+    df_pivot = pd.pivot_table(dataset,
                               values=['VOLUME', 'TOTAL_AMT'],
                               index=['YEAR', 'MOTHER_BRAND'],
                               columns=['TYPE_OF_OIL'],
@@ -435,7 +424,7 @@ def update_graph(data, row):
         style_data_conditional=condition_format
     )
     title_table = 'Competitor Import in ' + title_table
-    return table_amt, title_table
+    return title_, table_amt, title_table
 
 
 # ----------------------------------------------------------------
@@ -495,6 +484,9 @@ def start_work(output_queue):
                     if output_queue.empty():
                         output_queue.put(i)
                     i += 1
+        df = pd.read_excel('home/dash_apps/finished_apps/data/data.xlsx', sheet_name='Vietnam')
+        df.to_pickle(data_path)
     return (None)
+
 
 

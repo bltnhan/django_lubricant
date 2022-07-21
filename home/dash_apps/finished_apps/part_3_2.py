@@ -218,6 +218,11 @@ app.layout = dbc.Container([
                 children=[],
                 style={'font-family': 'Arial'},
                 className="card-text text-primary font-bold-weight text-center"),
+            html.Div([
+                dbc.Label("Show number of rows", style={'display': True, 'font-family': 'Arial'}),
+                dcc.Dropdown(value=10, clearable=False, style={'width': '35%'},
+                             options=[10, 25, 50, 100], id='row_drop'),
+            ], className="drop-zone-dropdown", style={'display': True, 'font-family': 'Arial'}, ),
             html.Div(id="detail_datatable"),
         ], width={'size': 5}),
         dcc.Store(id='store-data', data=[], storage_type='memory')
@@ -227,14 +232,18 @@ app.layout = dbc.Container([
 
 
 @app.callback(
-    [Output('store-data', 'data'),
-     Output('my_h1', 'children'), ],
+    [Output('my_h1', 'children'),
+     Output('main_datatable', 'children'),
+     Output('my_h4_main', 'children'),
+     Output('detail_datatable', 'children'),
+     Output('my_h4_detail', 'children'), ],
     [Input('my_dd_year', 'value'),
      Input('my_dd_month', 'value'),
      Input('my_dd_class', 'value'),
-     Input('my_dd_segment', 'value')],
+     Input('my_dd_segment', 'value'),
+     Input('row_drop', 'value')],
 )
-def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment):
+def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, row_n):
     dataset = df_groupby.copy()
     if my_dd_year is not None:
         dataset.loc[:] = dataset[dataset['YEAR'] == my_dd_year]
@@ -267,20 +276,8 @@ def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment):
     else:
         dataset.loc[:] = dataset
 
-    return dataset.to_dict('records'), title_
-
-
-@app.callback(
-    [Output('main_datatable', 'children'),
-     Output('my_h4_main', 'children'), ],
-    [Input('store-data', 'data'),
-     Input('my_dd_month', 'value'), ],
-
-)
-def create_table_1(data, my_dd_month):
-    dff = pd.DataFrame(data)
-    table_main = dff.copy()
-    df_result_vol_1 = pd.pivot_table(dff,
+    table_main = dataset.copy()
+    df_result_vol_1 = pd.pivot_table(table_main,
                                      values='VOLUME',
                                      index=['YEAR', 'SEGMENT', ],
                                      columns=['MONTH'],
@@ -295,25 +292,8 @@ def create_table_1(data, my_dd_month):
     # format percentage, money
     money = FormatTemplate.money(2)
     percentage = FormatTemplate.percentage(2)
-    for col in df_result_vol_1:
-        if df_result_vol_1[col].dtype == 'float64':
-            if col != 'YEAR':
-                item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.2f'))
-                columns.append(item)
-            else:
-                item = dict(id=col, name=col)
-        else:
-            item = dict(id=col, name=col)
-            columns.append(item)
+
     condition_format = [
-        # {
-        #     'if': {'column_id': 'YEAR'},
-        #     'width': '70px'
-        #     },
-        # {
-        #     'if': {'column_id': 'IMPORTER_NAME'},
-        #     'width': '250px'
-        #     },
         {
             'if': {
                 'column_type': 'text'
@@ -337,19 +317,24 @@ def create_table_1(data, my_dd_month):
             'textAlign': 'right',
         },
     ]
+    for col in df_result_vol_1:
+        if str(col).find('YEAR') == -1 and str(col).find('SEGMENT') == -1:
+            item = dict(id=col, name=col, type='numeric', format=Format(precision=4, scheme=Scheme.decimal_si_prefix))
+            columns.append(item)
+            condition_format = condition_format + table_bars.data_bars(df_result_vol_1, col, bar_color_1)
+            # else:
+            #     item = dict(id=col, name=col)
+        else:
+            item = dict(id=col, name=col)
+            columns.append(item)
+
     title_table = ""
     if my_dd_month is not None:
         if "Select All" in my_dd_month:
-            for col in df_result_vol_1.columns:
-                if str(col).find('YEAR') == -1 and str(col).find('SEGMENT') == -1:
-                    condition_format = condition_format + table_bars.data_bars(df_result_vol_1, col, bar_color_1)
-                    title_table = ', '.join([month for month in lst_month])
+            title_table = ', '.join([month for month in lst_month])
 
         else:
-            for col in df_result_vol_1.columns:
-                if str(col).find('YEAR') == -1 and str(col).find('SEGMENT') == -1:
-                    condition_format = condition_format + table_bars.data_bars(df_result_vol_1, col, bar_color_1)
-                    title_table = ', '.join([month for month in my_dd_month])
+            title_table = ', '.join([month for month in my_dd_month])
 
     table_amt = dt.DataTable(
         data=df_result_vol_1.to_dict('records'),
@@ -383,18 +368,9 @@ def create_table_1(data, my_dd_month):
         style_data_conditional=condition_format
     )
     title_table = 'Volume by Month in ' + title_table
-    return table_amt, title_table
 
-
-@app.callback(
-    [Output('detail_datatable', 'children'),
-     Output('my_h4_detail', 'children'), ],
-    Input('store-data', 'data')
-)
-def create_table_2(data):
-    dff = pd.DataFrame(data)
-    table_detail = dff.copy()
-    df_result_vol_2 = pd.pivot_table(dff,
+    table_detail = dataset.copy()
+    df_result_vol_2 = pd.pivot_table(table_detail,
                                      values='VOLUME',
                                      index=['YEAR', 'TYPE_OF_OIL', ],
                                      columns=['SEGMENT'],
@@ -409,17 +385,6 @@ def create_table_2(data):
     # format percentage, money
     money = FormatTemplate.money(2)
     percentage = FormatTemplate.percentage(2)
-    for col in df_result_vol_2:
-        if df_result_vol_2[col].dtype == 'float64':
-            if col != 'YEAR':
-                item = dict(id=col, name=col, type='numeric', format=dict(specifier=',.2f'))
-                columns.append(item)
-            else:
-                item = dict(id=col, name=col)
-                columns.append(item)
-        else:
-            item = dict(id=col, name=col)
-            columns.append(item)
     condition_format = [
         {
             'if': {'column_id': 'SEGMENT'},
@@ -448,14 +413,23 @@ def create_table_2(data):
             'textAlign': 'right',
         },
     ]
-    for col in df_result_vol_2.columns:
-        if str(col).find('YEAR') == -1 and str(col).find('TYPE_OF_OIL') == -1:
-            condition_format = condition_format + table_bars.data_bars(df_result_vol_2, col, bar_color_1)
 
-    table_amt = dt.DataTable(
+    for col in df_result_vol_2:
+        if str(col).find('YEAR') == -1 and str(col).find('TYPE_OF_OIL') == -1:
+            item = dict(id=col, name=col, type='numeric', format=Format(precision=4, scheme=Scheme.decimal_si_prefix))
+            columns.append(item)
+            condition_format = condition_format + table_bars.data_bars(df_result_vol_2, col, bar_color_2)
+            # else:
+            #     item = dict(id=col, name=col)
+            #     columns.append(item)
+        else:
+            item = dict(id=col, name=col)
+            columns.append(item)
+
+    table_vol = dt.DataTable(
         data=df_result_vol_2.to_dict('records'),
         columns=columns,
-        page_size=15,
+        page_size=row_n,
         sort_action="native",
         style_table={'overflowX': 'scroll'},
         style_cell={
@@ -466,7 +440,7 @@ def create_table_2(data):
             'font-family': 'Arial',
         },
         style_header={
-            'backgroundColor': '#2A63AB',
+            'backgroundColor': '#4DB299',
             'fontWeight': 'bold',
             'textAlign': 'center',
             'font': 'Arial',
@@ -484,7 +458,7 @@ def create_table_2(data):
         style_data_conditional=condition_format
     )
     title_table2 = 'Volume by Segment'
-    return table_amt, title_table2
+    return title_, table_amt, title_table, table_vol, title_table2
 
 
 # ----------------------------------------------------------------
@@ -544,5 +518,6 @@ def start_work(output_queue):
                     if output_queue.empty():
                         output_queue.put(i)
                     i += 1
+        df = pd.read_excel('home/dash_apps/finished_apps/data/data.xlsx', sheet_name='Vietnam')
+        df.to_pickle(data_path)
     return (None)
-

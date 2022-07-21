@@ -25,7 +25,7 @@ import threading
 import time
 from datetime import datetime
 
-pd.options.display.float_format = '${:.2f}'.format
+pd.options.display.float_format = '{:.2f}'.format
 # from dash.dash import no_update
 # from dash.exceptions import PreventUpdate
 bar_color_1 = "#60BF8F"
@@ -115,7 +115,8 @@ app.layout = dbc.Container([
             html.H6(f'Last update on: {d}',
                     id='my_h6',
                     style={'text-align': 'left', 'font-decoration': 'italic', 'font-family': 'Arial'}
-                    ))
+                    )
+        )
     ]),
     # ----------------------------------------------------------------
     # Download button
@@ -140,36 +141,40 @@ app.layout = dbc.Container([
             width=12)
     ]),
     # Filter
+    # -----------------------------
     dbc.Row([
+        html.P('Select below options filters:',
+               style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}),
+    ]),
+    dbc.Row([
+
         dbc.Col([
-            html.P('Select below options filters:',
-                   style={'font-size': 13, 'font-family': 'Arial', 'color': '#007DBF', 'text-align': 'left'}),
             dcc.Dropdown(
                 id='my_dd_year',
-                multi=False,
-                disabled=False,
+                multi=False, value='2022',
+                # disabled=False,
                 style={'display': True},
                 placeholder='SELECT YEAR',
-                value='2022',
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['YEAR'].unique())],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_month',
-                multi=True,
+                multi=True, value=['JAN'],
                 disabled=False,
                 style={'display': True},
                 placeholder='SELECT MONTH',
-                value=['JAN'],
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['MONTH'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_class',
                 multi=True,
@@ -180,9 +185,10 @@ app.layout = dbc.Container([
                 clearable=True,
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['CLASS'].unique()) + ['Select All']],
-                className='drop-zone-dropdown',
+                className='dcc-compon',
             ),
-            html.Br(),
+        ], width={'size': 2}),
+        dbc.Col([
             dcc.Dropdown(
                 id='my_dd_segment', multi=True,
                 # value = ['B2B'],
@@ -190,13 +196,15 @@ app.layout = dbc.Container([
                 placeholder='SELECT SEGMENT',
                 options=[{'label': x, 'value': x}
                          for x in list(df_groupby['SEGMENT'].unique()) + ['Select All']],
-                className='drop-zone-dropdown'
+                className='dcc-compon'
             ),
-        ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}, width={"size": 2}
-        ),
+        ], width={'size': 2}),
 
-        # ----------------------------------------------------------------
-        # Card
+    ], className='g-2 align-self-start', style={"padding": "5px", "margin": "5px"}),
+
+    # ----------------------------------------------------------------
+    # Card
+    dbc.Row([
         dbc.Col([
             dbc.Row([
                 dbc.Card([
@@ -209,7 +217,7 @@ app.layout = dbc.Container([
                     dbc.CardBody(
                         html.H1(
                             id='top_vol',
-                            children=0,
+                            children="",
                             className="card-text text-danger font-bold-weight text-center",
                             style={"font-size": "80px", "font-family": "Arial"}),
                     )],
@@ -252,9 +260,8 @@ app.layout = dbc.Container([
 
             ], className='g-5')
         ])
+
     ]),
-    html.Br(),
-    html.Br(),
 
     dbc.Row([
         dbc.Col([
@@ -276,14 +283,19 @@ app.layout = dbc.Container([
 # ----------------------------------------------------------------
 # Callbacks day/month/class/segment
 @app.callback(
-    [Output('store-data', 'data'),
-     Output('my_h1', 'children'), ],
+    [Output('my_h1', 'children'),
+     Output('top_vol', 'children'),
+     Output('my_h4_card', 'children'),
+     Output('my_datatable', 'children'),
+     Output('my_h4', 'children'), ],
     [Input('my_dd_year', 'value'),
      Input('my_dd_month', 'value'),
      Input('my_dd_class', 'value'),
-     Input('my_dd_segment', 'value'), ]
+     Input('my_dd_segment', 'value'),
+     Input('sum-amount-btn', 'n_clicks_timestamp'),
+     Input('sum-volume-btn', 'n_clicks_timestamp'), ]
 )
-def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment):
+def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment, amount_btn, volume_btn):
     dataset = df_groupby.copy()
     if my_dd_year is not None:
         dataset.loc[:] = dataset[dataset['YEAR'] == my_dd_year]
@@ -319,30 +331,7 @@ def store_data(my_dd_year, my_dd_month, my_dd_class, my_dd_segment):
     else:
         dataset.loc[:] = dataset
 
-    return dataset.to_dict('records'), title_
-
-
-@app.callback(
-    [Output('my_datatable', 'children'),
-     Output('my_h4', 'children'),
-     Output('top_vol', 'children'),
-     Output('my_h4_card', 'children'), ],
-    [Input('store-data', 'data'),
-     Input('my_dd_month', 'value'),
-     Input('sum-amount-btn', 'n_clicks_timestamp'),
-     Input('sum-volume-btn', 'n_clicks_timestamp'), ]
-
-)
-def update_graph(data, my_dd_month, amount_btn, volume_btn):
-    dff = pd.DataFrame(data)
-    data_ = dff.copy()
-    data_2 = dff.copy()
-    data_2['VOLUME'] = pd.to_numeric(data_['VOLUME'], errors='coerce')
-    data_2['TOTAL_AMT'] = pd.to_numeric(data_['TOTAL_AMT'], errors='coerce')
-    top_amt = data_2['TOTAL_AMT'].nlargest(1).values[0]
-    top_vol = data_2['VOLUME'].nlargest(1).values[0]
-    top_val = 0
-
+    data_ = dataset.copy()
     if int(amount_btn) > int(volume_btn):
         df_result_val = pd.pivot_table(data_,
                                        values='VOLUME',
@@ -351,10 +340,9 @@ def update_graph(data, my_dd_month, amount_btn, volume_btn):
                                        aggfunc=['sum'],
                                        fill_value=0
                                        ).fillna(0).reset_index()
-        top_val = top_vol
         lib.rename_pivot_column(df_result_val, False)
-
-        option_ = 'by Volume'
+        option_ = 'by Amount'
+        vol = data_['TOTAL_AMT'].sum(axis=0)
     else:
         df_result_val = pd.pivot_table(data_,
                                        values='TOTAL_AMT',
@@ -363,10 +351,12 @@ def update_graph(data, my_dd_month, amount_btn, volume_btn):
                                        aggfunc=['sum'],
                                        fill_value=0
                                        ).fillna(0).reset_index()
-        top_val = top_amt
         lib.rename_pivot_column(df_result_val, False)
-        option_ = ' by Amount'
+        option_ = 'by Volume'
+        vol = data_['VOLUME'].sum(axis=0)
 
+    vol = lib.human_format(vol)
+    title_card = f"Top Industry Import (YTD) {option_}"
     lib.format_percent_df(df_result_val, 4, ['YEAR', 'INDUSTRY'])
 
     df_result_val = lib.revert_month(df_result_val, list(df_result_val.columns), ['YEAR', 'INDUSTRY'])
@@ -378,28 +368,26 @@ def update_graph(data, my_dd_month, amount_btn, volume_btn):
     # format percentage, money
     money = FormatTemplate.money(2)
     percentage = FormatTemplate.percentage(2)
-    for col in df_result_val:
-        if df_result_val[col].dtype == 'float64':
-            item = dict(id=col, name=col, type='numeric', format=percentage)
-            columns.append(item)
-        else:
-            item = dict(id=col, name=col)
-            columns.append(item)
-            condition_format = [
+    condition_format = [
                 {
                     'if': {'column_id': 'YEAR'},
                     'width': '70px'
                 },
                 {
                     'if': {'column_id': 'IMPORTER_NAME'},
-                    'width': '250px'
+                    'width': '250px',
+                    'textAlign': 'center',
                 },
                 {
-                    'if': {
-                        'column_type': 'text'
-                    },
-                    'textAlign': 'left'
+                    'if': {'column_id': 'INDUSTRY'},
+                    'textAlign': 'center',
                 },
+                    # {
+                    # 'if': {
+                    #     'column_type': 'text'
+                    # },
+                    # 'textAlign': 'left'
+                # },
                 {
                     'if': {'row_index': 'odd'},
                     'backgroundColor': 'rgb(248, 248, 248)'
@@ -417,16 +405,22 @@ def update_graph(data, my_dd_month, amount_btn, volume_btn):
                     'textAlign': 'right',
                 },
             ]
+    for col in df_result_val:
+        # if df_result_val[col].dtype == 'float64' and df_result_val[col].dtype == 'float32':
+        if col != 'INDUSTRY':
+            item = dict(id=col, name=col, type='numeric', format=percentage)
+            columns.append(item)
+            #condition_format = condition_format + table_bars.data_bars(df_result_val, col, bar_color_1)
+        else:
+            item = dict(id=col, name=col)
+            columns.append(item)
+
     if my_dd_month is not None:
         if "Select All" in my_dd_month:
-            # for month in lst_month:
-            #     condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
             title_table = ', '.join([month for month in lst_month])
             month_ = f'{title_page} ' + ', '.join([month for month in lst_month])
-
         else:
-            # for month in my_dd_month:
-            #     condition_format = condition_format + table_bars.data_bars(df_result_val, month, bar_color_1)
+
             title_table = ', '.join([month for month in my_dd_month])
             month_ = f'{title_page} ' + ', '.join([month for month in my_dd_month])
 
@@ -461,10 +455,9 @@ def update_graph(data, my_dd_month, amount_btn, volume_btn):
         style_data_conditional=condition_format
     )
 
-    top_val = lib.human_format(top_val)
-    title_table = f"Data Table {option_} in" + title_table
-    title_card = f"Top Industry Import (YTD) {option_}"
-    return table_amt, title_table, top_val, title_card
+    title_table = f"Data Table {option_} in " + title_table
+
+    return title_, vol, title_card, table_amt, title_table
 
 
 # ----------------------------------------------------------------
@@ -499,8 +492,8 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-    list_file_names = ['home/dash_apps/finished_apps/data/data.xlsx', 'home/dash_apps/finished_apps/data/company_directory.xlsx', 'home/dash_apps/finished_apps/data/oil_application.xlsx',
-                       'home/dash_apps/finished_apps/data/main_brand.xlsx']
+    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
+                       'data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:
@@ -524,4 +517,6 @@ def start_work(output_queue):
                     if output_queue.empty():
                         output_queue.put(i)
                     i += 1
-
+    df = pd.read_excel('home/dash_apps/finished_apps/data/data.xlsx', sheet_name='Vietnam')
+    df.to_pickle(data_path)
+    return (None)
