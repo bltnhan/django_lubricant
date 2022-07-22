@@ -383,7 +383,7 @@ def store_data(my_dd_year, my_dd_month, my_dd_segment, my_dd_type_oil, my_dd_mot
                 'column_id': 'MOTHER_BRAND',
             },
             'textAlign': 'left',
-            'width': '150px',
+            'width': '100px',
             'backgroundColor': '#BEE0C7'
         },
     ]
@@ -396,12 +396,22 @@ def store_data(my_dd_year, my_dd_month, my_dd_segment, my_dd_type_oil, my_dd_mot
         data=df_pivot.to_dict('records'),
         columns=columns,
         page_size=row,
+        tooltip={i: {
+            'value': i,
+            'use_with': 'both'  # both refers to header & data cell
+        } for i in df_pivot.columns},
+        tooltip_delay=0,
+        tooltip_duration=None,
         sort_action="native",
+
         style_table={'overflowX': 'scroll'},
         style_cell={
             'textAlign': 'left',
             'min-width': '70px',
-            'max-width': '200px',
+            'max-width': '100px',
+            'textOverflow': 'ellipsis',
+            'maxWidth': 0,
+
             'backgroundColor': '',
             'font-family': 'Arial',
         },
