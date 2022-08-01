@@ -57,21 +57,24 @@ d = date_time.strftime("%m/%d/%Y, %H:%M:%S")
 # df = pd.read_excel(demo_path, sheet_name="Vietnam", usecols= 'A:AJ')
 df = pd.read_pickle(data_path)
 # df_oil = pd.read_excel(oil_path, sheet_name=0, usecols= 'A:E')
-mapping = {df.columns[0]: 'ID', df.columns[1]: 'MONTH', df.columns[2]: 'YEAR', df.columns[3]: 'TAX_CODE',
-           df.columns[4]: 'IMPORTER_NAME', df.columns[5]: 'INDUSTRY',
-           df.columns[6]: 'INDUSTRY_CODE', df.columns[7]: 'CLASS', df.columns[8]: 'CLASS_CODE',
-           df.columns[9]: 'COMPANY_CLASSIFICATION', df.columns[10]: 'COMPANY_CLASSIFICATION_CODE',
-           df.columns[11]: 'CITY', df.columns[12]: 'HSCODE', df.columns[13]: 'DESCRIPTION_VN',
-           df.columns[14]: 'TYPE_OF_OIL', df.columns[15]: 'TYPE_CODE', df.columns[16]: 'BASE_OIL_FINISH_GOOD',
-           df.columns[17]: 'OIL_CLASS_CODE', df.columns[18]: 'MOTHER_BRAND', df.columns[19]: 'MOTHER_BRAND_CODE',
-           df.columns[20]: 'MAIN_BRAND', df.columns[21]: 'MAIN_BRAND_CODE', df.columns[22]: 'OIL_APPLICATION_CODE',
-           df.columns[23]: 'OIL_APPLICATION_CHECK', df.columns[24]: 'VICOSITY_SPEC', df.columns[25]: 'QTY',
-           df.columns[26]: 'UOM', df.columns[27]: 'PACK_SIZE', df.columns[28]: 'PACK_SPEC',
-           df.columns[29]: 'QUANTITY_PER_PACK', df.columns[30]: 'VOLUME', df.columns[31]: 'SEGMENT',
-           df.columns[32]: 'TOTAL_INV_VALUE',
-           df.columns[33]: 'CURRENCY', df.columns[34]: 'EXCHANGE_TO_USD', df.columns[35]: 'TOTAL_AMT'
-           }
+mapping = {df.columns[0]: 'ID', df.columns[1]: 'Date',
+	       df.columns[2]: 'MONTH', df.columns[3]: 'YEAR', df.columns[4]: 'TAX_CODE',
+           df.columns[5]: 'IMPORTER_NAME', df.columns[6]: 'INDUSTRY',
+           df.columns[7]: 'INDUSTRY_CODE', df.columns[8]: 'CLASS', df.columns[9]: 'CLASS_CODE',
+           df.columns[10]: 'COMPANY_CLASSIFICATION', df.columns[11]: 'COMPANY_CLASSIFICATION_CODE',
+           df.columns[12]: 'CITY', df.columns[13]: 'HSCODE', df.columns[14]: 'DESCRIPTION_VN',
+           df.columns[15]: 'TYPE_OF_OIL', df.columns[16]: 'TYPE_CODE', df.columns[17]: 'BASE_OIL_FINISH_GOOD',
+           df.columns[18]: 'OIL_CLASS_CODE', df.columns[19]: 'MOTHER_BRAND', df.columns[20]: 'MOTHER_BRAND_CODE',
+           df.columns[21]: 'MAIN_BRAND', df.columns[22]: 'LEASE',
+	       df.columns[23]: 'OIL_APPLICATION_CODE', df.columns[24]: 'OIL_APPLICATION_CHECK', df.columns[25]: 'VICOSITY_SPEC',
+	       df.columns[26]: 'QTY', df.columns[27]: 'UOM', df.columns[28]: 'PACK_SIZE', df.columns[29]: 'PACK_SPEC',
+           df.columns[30]: 'QUANTITY_PER_PACK', df.columns[31]: 'VOLUME', df.columns[32]: 'SEGMENT',
+           df.columns[33]: 'TOTAL_INV_VALUE',  df.columns[34]: 'CURRENCY', df.columns[35]: 'EXCHANGE_TO_USD', df.columns[36]: 'TOTAL_AMT',
+	       df.columns[37]: 'EXPORTER_NAME',  df.columns[38]: 'Transaction_ID',df.columns[39]: 'Short_Exporter_Name',
+           df.columns[40]: 'Sector_Industry_by_Client',  df.columns[41]: 'Oil_Application_by_Client',  df.columns[42]: 'Competitor_Company_by_Client',
+}
 df.rename(columns=mapping, inplace=True)
+df['IMPORTER_NAME'] = df['IMPORTER_NAME'].str.title()
 
 df['CLASS'] = df['CLASS_CODE'].apply(lambda x: "Client" if x == 3 else "Trading" if x == 2 else "Competitor")
 df = df[['MONTH', 'YEAR', 'CLASS', 'SEGMENT', 'MOTHER_BRAND', 'VOLUME', 'TOTAL_AMT', 'INDUSTRY']]
@@ -482,8 +485,10 @@ def start_work(output_queue):
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107098&ithint=file%2cxlsx&authkey=!AFjg9MHgv4VRIqI',
         'https://onedrive.live.com/download.aspx?resid=C43234B4367095E1!107220&ithint=file%2cxlsx&authkey=!ALjBwbSqS6TYXn4'
     ]
-    list_file_names = ['data/data.xlsx', 'data/company_directory.xlsx', 'data/oil_application.xlsx',
-                       'data/main_brand.xlsx']
+    list_file_names = ['home/dash_apps/finished_apps/data/data.xlsx',
+                       'home/dash_apps/finished_apps/data/company_directory.xlsx',
+                       'home/dash_apps/finished_apps/data/oil_application.xlsx',
+                       'home/dash_apps/finished_apps/data/main_brand.xlsx']
 
     for link in list_links:
         with open(list_file_names[list_links.index(link)], "wb") as f:
